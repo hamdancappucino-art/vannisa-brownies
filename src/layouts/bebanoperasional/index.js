@@ -1,0 +1,294 @@
+import React, { useState } from "react";
+import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import {
+  Card,
+  Box,
+  Button,
+  Modal,
+  TextField,
+  IconButton,
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import Icon from "@mui/material/Icon";
+
+import SoftTypography from "components/SoftTypography";
+import SoftBox from "components/SoftBox";
+
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import Footer from "examples/Footer";
+
+import Table from "examples/Tables/Table";
+
+// PAKAI DATA RAW
+import bebanTableData from "./data/beban";
+
+export default function BebanOperasional() {
+  // ambil column dan rows asli
+  const { columns, rows: rawRows } = bebanTableData;
+
+  const [data, setData] = useState(rawRows);
+  const [open, setOpen] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
+
+  const [form, setForm] = useState({
+    jenis_beban: "",
+    kode_akun: "",
+    nominal: "",
+    tanggal_beban: "",
+    keterangan: "",
+    id_user: 1,
+    created_at: "",
+  });
+
+  // OPEN ADD
+  function openAdd() {
+    setEditingIndex(null);
+    setForm({
+      jenis_beban: "",
+      kode_akun: "",
+      nominal: "",
+      tanggal_beban: "",
+      keterangan: "",
+      id_user: 1,
+      created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+    });
+    setOpen(true);
+  }
+
+  // OPEN EDIT
+  function openEdit(i) {
+    setEditingIndex(i);
+    setForm(data[i]);
+    setOpen(true);
+  }
+
+  // SAVE
+  function save() {
+    if (editingIndex === null) {
+      // tambah
+      setData((prev) => [
+        {
+          ...form,
+          id: Math.max(0, ...prev.map((r) => r.id)) + 1,
+        },
+        ...prev,
+      ]);
+    } else {
+      // update
+      setData((prev) =>
+        prev.map((r, idx) => (idx === editingIndex ? form : r))
+      );
+    }
+
+    setOpen(false);
+  }
+
+  // DELETE
+  function remove(i) {
+    if (!confirm("Hapus data beban ini?")) return;
+    setData((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  // CONVERT DATA → JSX ROWS
+  const tableRows = data.map((row, index) => ({
+    id: (
+      <SoftTypography variant="caption" color="text">
+        {row.id}
+      </SoftTypography>
+    ),
+    jenis_beban: (
+      <SoftTypography variant="caption" color="text">
+        {row.jenis_beban}
+      </SoftTypography>
+    ),
+    kode_akun: (
+      <SoftTypography variant="caption" color="text">
+        {row.kode_akun}
+      </SoftTypography>
+    ),
+    nominal: (
+      <SoftTypography variant="caption" color="text">
+        {row.nominal.toLocaleString("id-ID", {
+          style: "currency",
+          currency: "IDR",
+        })}
+      </SoftTypography>
+    ),
+    tanggal_beban: (
+      <SoftTypography variant="caption" color="text">
+        {row.tanggal_beban}
+      </SoftTypography>
+    ),
+    keterangan: (
+      <SoftTypography variant="caption" color="text">
+        {row.keterangan}
+      </SoftTypography>
+    ),
+    id_user: (
+      <SoftTypography variant="caption" color="text">
+        {row.id_user}
+      </SoftTypography>
+    ),
+    created_at: (
+      <SoftTypography variant="caption" color="text">
+        {row.created_at}
+      </SoftTypography>
+    ),
+    aksi: (
+      <SoftBox display="flex" justifyContent="center" gap={1}>
+        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
+          <EditIcon />
+        </IconButton>
+
+        <IconButton color="error" size="small" onClick={() => remove(index)}>
+          <DeleteIcon />
+        </IconButton>
+      </SoftBox>
+    ),
+  }));
+
+  return (
+    <DashboardLayout>
+      <DashboardNavbar />
+
+      <Box p={3}>
+        <Card sx={{ p: 3 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <SoftTypography variant="h6">Beban Operasional</SoftTypography>
+
+            <Grid item xs={12} md="auto">
+              <Button
+                variant="contained"
+                color="success"
+                onClick={openAdd}
+                sx={{ color: "inherit", minWidth: "170px" }}
+              >
+                <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
+                <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                  Tambah Beban
+                </SoftTypography>
+              </Button>
+            </Grid>
+          </Box>
+
+          <SoftBox>
+            <Table
+              columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]}
+              rows={tableRows}
+            />
+          </SoftBox>
+        </Card>
+      </Box>
+
+      {/* MODAL INPUT */}
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+      >
+        <Box
+          sx={{
+            width: 480,
+            p: 3,
+            bgcolor: "background.paper",
+            borderRadius: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <SoftTypography variant="h6">
+            {editingIndex === null ? "Tambah Beban" : "Edit Beban"}
+          </SoftTypography>
+
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Jenis Beban
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={form.jenis_beban}
+              onChange={(e) => setForm({ ...form, jenis_beban: e.target.value })}
+            />
+          </Box>
+
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Kode Akun
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={form.kode_akun}
+              onChange={(e) => setForm({ ...form, kode_akun: e.target.value })}
+            />
+          </Box>
+
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Nominal
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              type="number"
+              value={form.nominal}
+              onChange={(e) => setForm({ ...form, nominal: e.target.value })}
+            />
+          </Box>
+
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Tanggal Beban
+            </SoftTypography>
+            <TextField
+              fullWidth
+              type="date"
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
+              value={form.tanggal_beban}
+              onChange={(e) => setForm({ ...form, tanggal_beban: e.target.value })}
+            />
+          </Box>
+
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Keterangan
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={form.keterangan}
+              onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
+            />
+          </Box>
+
+          <Box mt={3} textAlign="right">
+            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              variant="contained"
+              color="info"
+              sx={{ color: "#0000FF !important" }}
+              onClick={save}
+            >
+              Simpan
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      <Footer />
+    </DashboardLayout>
+  );
+}
