@@ -1,11 +1,11 @@
 const verifikasiPenjualanData = {
   columns: [
-    { name: "id_penjualan", label: "No Invoice", align: "left" },
-    { name: "tanggal_jual", label: "Tanggal", align: "left" },
-    { name: "pelanggan", label: "Pelanggan", align: "left" },
-    { name: "produk", label: "Produk", align: "left" },
-    { name: "total_harga", label: "Total", align: "right" },
-    { name: "status", label: "Status", align: "left" },
+    { name: "id_penjualan", label: "No Invoice", align: "center" },
+    { name: "tanggal_jual", label: "Tanggal", align: "center" },
+    { name: "pelanggan", label: "Pelanggan", align: "center" },
+    { name: "produk", label: "Produk", align: "center" },
+    { name: "total_harga", label: "Total", align: "center" },
+    { name: "status", label: "Status", align: "center" },
     { name: "aksi", label: "Aksi", align: "center" },
   ],
 

@@ -1,73 +1,35 @@
-// data/laporanPenjualanTableData.js
-import Icon from "@mui/material/Icon";
-import SoftTypography from "components/SoftTypography";
-import SoftBox from "components/SoftBox";   
-
-const action = (
-  <Icon sx={{ cursor: "pointer", fontWeight: "bold" }} fontSize="small">
-    more_vert
-  </Icon>
-);
-
 const laporanPenjualanTableData = {
   columns: [
-    { name: "tanggal", align: "left" },
-    { name: "kode", align: "left" },
-    { name: "nama", align: "left" },
-    { name: "total", align: "right" },
-    { name: "action", align: "center" },
+    { name: "id_laporan", align: "center", label: "ID Laporan" },
+    { name: "tanggal_awal", align: "center", label: "Tanggal Awal" },
+    { name: "tanggal_akhir", align: "center", label: "Tanggal Akhir" },
+    { name: "total_penjualan", align: "center", label: "Total Penjualan" },
+    { name: "total_transaksi", align: "center", label: "Total Transaksi" },
+    { name: "produk_terlaris", align: "center", label: "Produk Terlaris" },
+    { name: "periode", align: "center", label: "Periode" },
+    { name: "created_at", align: "center", label: "Tanggal Dibuat" },
   ],
 
   rows: [
     {
-      tanggal: (
-        <SoftTypography variant="button" color="text" fontWeight="medium">
-          2025-10-25
-        </SoftTypography>
-      ),
-      kode: (
-        <SoftTypography variant="button" color="text" fontWeight="medium">
-          TRX001
-        </SoftTypography>
-      ),
-      nama: (
-        <SoftBox display="flex" alignItems="center">
-          <SoftTypography variant="button" color="text" fontWeight="medium">
-            Andi
-          </SoftTypography>
-        </SoftBox>
-      ),
-      total: (
-        <SoftTypography variant="button" color="text" fontWeight="medium">
-          Rp100.000
-        </SoftTypography>
-      ),
-      action,
+      id_laporan: "LPR001",
+      tanggal_awal: "2025-10-01",
+      tanggal_akhir: "2025-10-25",
+      total_penjualan: 100000,
+      total_transaksi: 12,
+      produk_terlaris: "Brownies Coklat",
+      periode: "Oktober 2025",
+      created_at: "2025-10-26",
     },
     {
-      tanggal: (
-        <SoftTypography variant="button" color="text" fontWeight="medium">
-          2025-10-25
-        </SoftTypography>
-      ),
-      kode: (
-        <SoftTypography variant="button" color="text" fontWeight="medium">
-          TRX002
-        </SoftTypography>
-      ),
-      nama: (
-        <SoftBox display="flex" alignItems="center">
-          <SoftTypography variant="button" color="text" fontWeight="medium">
-            Budi
-          </SoftTypography>
-        </SoftBox>
-      ),
-      total: (
-        <SoftTypography variant="button" color="text" fontWeight="medium">
-          Rp75.000
-        </SoftTypography>
-      ),
-      action,
+      id_laporan: "LPR002",
+      tanggal_awal: "2025-10-01",
+      tanggal_akhir: "2025-10-25",
+      total_penjualan: 75000,
+      total_transaksi: 8,
+      produk_terlaris: "Brownies Keju",
+      periode: "Oktober 2025",
+      created_at: "2025-10-26",
     },
   ],
 };

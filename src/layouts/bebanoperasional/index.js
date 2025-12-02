@@ -43,6 +43,12 @@ export default function BebanOperasional() {
     created_at: "",
   });
 
+  function formatDate(dateString) {
+    const d = new Date(dateString);
+    if (isNaN(d)) return dateString;
+    return d.toISOString().slice(0, 10); // -> YYYY-MM-DD
+  }
+
   // OPEN ADD
   function openAdd() {
     setEditingIndex(null);
@@ -119,7 +125,7 @@ export default function BebanOperasional() {
     ),
     tanggal_beban: (
       <SoftTypography variant="caption" color="text">
-        {row.tanggal_beban}
+        {formatDate(row.tanggal_beban)}
       </SoftTypography>
     ),
     keterangan: (
@@ -134,7 +140,7 @@ export default function BebanOperasional() {
     ),
     created_at: (
       <SoftTypography variant="caption" color="text">
-        {row.created_at}
+        {formatDate(row.created_at)}
       </SoftTypography>
     ),
     aksi: (
@@ -153,40 +159,46 @@ export default function BebanOperasional() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-
-      <Box p={3}>
-        <Card sx={{ p: 3 }}>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-          >
-            <SoftTypography variant="h6">Beban Operasional</SoftTypography>
-
-            <Grid item xs={12} md="auto">
-              <Button
-                variant="contained"
-                color="success"
-                onClick={openAdd}
-                sx={{ color: "inherit", minWidth: "170px" }}
+      <SoftBox py={3}>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card>
+              <SoftBox
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                p={3}
               >
-                <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
-                <SoftTypography fontSize="13px" fontWeight="medium" color="black">
-                  Tambah Beban
-                </SoftTypography>
-              </Button>
-            </Grid>
-          </Box>
+                <SoftTypography variant="h6">Beban Operasional</SoftTypography>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={openAdd}
+                  sx={{ color: "inherit", minWidth: "150px" }}
+                >
+                  <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
+                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                    Tambah Beban
+                  </SoftTypography>
+                </Button>
+              </SoftBox>
 
-          <SoftBox>
-            <Table
-              columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]}
-              rows={tableRows}
-            />
-          </SoftBox>
-        </Card>
-      </Box>
+              <SoftBox
+                sx={{
+                  "& .MuiTableRow-root:not(:last-child)": {
+                    "& td": {
+                      borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                        `${borderWidth[1]} solid ${borderColor}`,
+                    },
+                  },
+                }}
+              >
+                <Table columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]} rows={tableRows} />
+              </SoftBox>
+            </Card>
+          </Grid>
+        </Grid>
+      </SoftBox>
 
       {/* MODAL INPUT */}
       <Modal

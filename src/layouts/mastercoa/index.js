@@ -109,6 +109,11 @@ export default function MasterCOA() {
         {row.is_active ? "Aktif" : "Tidak Aktif"}
       </SoftTypography>
     ),
+    tanggal: (
+      <SoftTypography variant="caption" color="text">
+        {row?.updated_at || row?.created_at || "-"}
+      </SoftTypography>
+    ),
     aksi: (
       <SoftBox display="flex" alignItems="center" gap={1} justifyContent="center">
         <IconButton color="info" size="small" onClick={() => openEdit(index)}>
@@ -125,37 +130,46 @@ export default function MasterCOA() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-
-      <Box p={3}>
-        <Card sx={{ p: 3 }}>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-          >
-            <SoftTypography variant="h6">Master COA</SoftTypography>
-
-            <Grid item xs={12} md="auto">
-              <Button
-                variant="contained"
-                color="success"
-                onClick={openAdd}
-                sx={{ color: "inherit", minWidth: "150px" }}
+      <SoftBox py={3}>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card>
+              <SoftBox
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                p={3}
               >
-                <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
-                <SoftTypography fontSize="13px" fontWeight="medium" color="black">
-                  Tambah COA
-                </SoftTypography>
-              </Button>
-            </Grid>
-          </Box>
+                <SoftTypography variant="h6">Master COA</SoftTypography>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={openAdd}
+                  sx={{ color: "inherit", minWidth: "150px" }}
+                >
+                  <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
+                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                    Tambah COA
+                  </SoftTypography>
+                </Button>
+              </SoftBox>
 
-          <SoftBox>
-            <Table columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]} rows={tableRows} />
-          </SoftBox>
-        </Card>
-      </Box>
+              <SoftBox
+                sx={{
+                  "& .MuiTableRow-root:not(:last-child)": {
+                    "& td": {
+                      borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                        `${borderWidth[1]} solid ${borderColor}`,
+                    },
+                  },
+                }}
+              >
+                <Table columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]} rows={tableRows} />
+              </SoftBox>
+            </Card>
+          </Grid>
+        </Grid>
+      </SoftBox>
 
       {/* MODAL INPUT */}
       <Modal

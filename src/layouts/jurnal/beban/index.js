@@ -1,43 +1,39 @@
 import React, { useState } from "react";
+import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Footer from "examples/Footer";
 
+import { Card, Box, Button, Modal, TextField, IconButton } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import Card from "@mui/material/Card";
-import Button from "@mui/material/Button";
 import Icon from "@mui/material/Icon";
-import TextField from "@mui/material/TextField";
-import Modal from "@mui/material/Modal";
-import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
+
+import SoftBox from "components/SoftBox";
+import SoftTypography from "components/SoftTypography";
+import Table from "examples/Tables/Table";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import SoftBox from "components/SoftBox";
-import SoftTypography from "components/SoftTypography";
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import Footer from "examples/Footer";
-import Table from "examples/Tables/Table";
+// DATA
+import laporanBebanTableData from "./data/beban";
 
-import laporanPenjualanTableData from "./data/penjualan";
+export default function Beban() {
+  const { columns, rows: rawRows } = laporanBebanTableData;
 
-export default function LaporanPenjualan() {
-  const { rows: initialRows, columns } = laporanPenjualanTableData;
-
-  const [data, setData] = useState(initialRows);
+  const [data, setData] = useState(rawRows);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // FORM BARU SESUAI COLUMNS
   const [form, setForm] = useState({
-    id_laporan: "",
-    tanggal_awal: "",
-    tanggal_akhir: "",
-    total_penjualan: "",
-    total_transaksi: "",
-    produk_terlaris: "",
-    periode: "",
+    id_jurnal_beban: "",
+    id_beban: "",
+    tanggal: "",
+    kode: "",
+    nominal: "",
+    tipe_balance: "",
+    keterangan: "",
     created_at: "",
+    updated_at: "",
   });
 
   // OPEN EDIT
@@ -49,65 +45,40 @@ export default function LaporanPenjualan() {
 
   // SAVE EDIT
   function save() {
-    const updated = [...data];
-    updated[editingIndex] = {
+    const updatedForm = {
       ...form,
-      total_penjualan: Number(form.total_penjualan),
-      total_transaksi: Number(form.total_transaksi),
+      updated_at: new Date().toISOString().split("T")[0],
     };
-    setData(updated);
+
+    setData((prev) =>
+      prev.map((item, idx) => (idx === editingIndex ? updatedForm : item))
+    );
+
     setOpen(false);
   }
 
   // DELETE
   function remove(i) {
-    if (!confirm("Hapus data ini?")) return;
+    if (!confirm("Hapus beban ini?")) return;
     setData((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  // BUILD TABLE ROWS
+  // TABLE VIEW
   const tableRows = data.map((row, index) => ({
-    id_laporan: (
-      <SoftTypography variant="caption" color="text">
-        {row.id_laporan}
+    id_jurnal_beban: <SoftTypography variant="caption">{row.id_jurnal_beban}</SoftTypography>,
+    id_beban: <SoftTypography variant="caption">{row.id_beban}</SoftTypography>,
+    tanggal: <SoftTypography variant="caption">{row.tanggal}</SoftTypography>,
+    kode: <SoftTypography variant="caption">{row.kode}</SoftTypography>,
+    nominal: (
+      <SoftTypography variant="caption">
+        {Number(row.nominal).toLocaleString("id-ID")}
       </SoftTypography>
     ),
-    tanggal_awal: (
-      <SoftTypography variant="caption" color="text">
-        {row.tanggal_awal}
-      </SoftTypography>
-    ),
-    tanggal_akhir: (
-      <SoftTypography variant="caption" color="text">
-        {row.tanggal_akhir}
-      </SoftTypography>
-    ),
-    total_penjualan: (
-      <SoftTypography variant="caption" color="text">
-        Rp{Number(row.total_penjualan).toLocaleString("id-ID")}
-      </SoftTypography>
-    ),
-    total_transaksi: (
-      <SoftTypography variant="caption" color="text">
-        {row.total_transaksi}
-      </SoftTypography>
-    ),
-    produk_terlaris: (
-      <SoftTypography variant="caption" color="text">
-        {row.produk_terlaris}
-      </SoftTypography>
-    ),
-    periode: (
-      <SoftTypography variant="caption" color="text">
-        {row.periode}
-      </SoftTypography>
-    ),
-    created_at: (
-      <SoftTypography variant="caption" color="text">
-        {row.created_at}
-      </SoftTypography>
-    ),
-    action: (
+    tipe_balance: <SoftTypography variant="caption">{row.tipe_balance}</SoftTypography>,
+    keterangan: <SoftTypography variant="caption">{row.keterangan}</SoftTypography>,
+    created_at: <SoftTypography variant="caption">{row.created_at}</SoftTypography>,
+
+    aksi: (
       <SoftBox display="flex" justifyContent="center" gap={1}>
         <IconButton color="info" size="small" onClick={() => openEdit(index)}>
           <EditIcon />
@@ -129,8 +100,8 @@ export default function LaporanPenjualan() {
             <Card>
               {/* FILTER */}
               <SoftBox p={3}>
-                <SoftTypography variant="h6">Laporan Penjualan</SoftTypography>
-                <Grid container spacing={2} mb={2} alignItems="flex-end">
+                <SoftTypography variant="h6">Jurnal Beban</SoftTypography>
+                <Grid container spacing={2} mt={1.5} mb={2}>
                   <Grid item xs={12} md={3}>
                     <SoftTypography fontSize="14px" fontWeight="medium">
                       Tanggal Awal
@@ -146,12 +117,7 @@ export default function LaporanPenjualan() {
                   </Grid>
 
                   <Grid item xs={12} md={1.5}>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      sx={{ mt: { xs: 4, md: 4 } }}
-                    >
+                    <Button variant="contained" color="primary" fullWidth sx={{ mt: 2.5 }}>
                       <Icon sx={{ mr: 1, color: "white !important" }}>search</Icon>
                       <SoftTypography fontSize="13px" fontWeight="medium" color="white">
                         Tampilkan
@@ -173,7 +139,7 @@ export default function LaporanPenjualan() {
                 }}
               >
                 <Table
-                  columns={[...columns, { name: "action", align: "center", label: "Aksi" }]}
+                  columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]}
                   rows={tableRows}
                 />
               </SoftBox>
@@ -182,7 +148,7 @@ export default function LaporanPenjualan() {
         </Grid>
       </SoftBox>
 
-      {/* EDIT MODAL */}
+      {/* MODAL EDIT */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box
           sx={{
@@ -195,20 +161,27 @@ export default function LaporanPenjualan() {
           }}
         >
           <SoftTypography variant="h6" mb={2}>
-            Edit Laporan Penjualan
+            Edit Jurnal
           </SoftTypography>
 
-          {Object.keys(form).map((f) => (
-            <Box key={f} mb={2}>
+          {[
+            "id_jurnal_beban",
+            "id_beban",
+            "tanggal",
+            "kode",
+            "nominal",
+            "tipe_balance",
+            "keterangan",
+          ].map((field) => (
+            <Box key={field} mb={2}>
               <SoftTypography variant="caption" fontWeight="medium">
-                {f.toUpperCase()}
+                {field.toUpperCase()}
               </SoftTypography>
-
               <TextField
                 fullWidth
-                type={f.includes("tanggal") || f.includes("created") ? "date" : "text"}
-                value={form[f]}
-                onChange={(e) => setForm({ ...form, [f]: e.target.value })}
+                type={field === "tanggal" ? "date" : "text"}
+                value={form[field]}
+                onChange={(e) => setForm({ ...form, [field]: e.target.value })}
               />
             </Box>
           ))}

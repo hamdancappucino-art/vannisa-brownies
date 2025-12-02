@@ -7,15 +7,23 @@
 import BebanOperasional from "layouts/bebanoperasional";
 import BukuBesar from "layouts/bukubesar";
 import Dashboard from "layouts/dashboard";
+//laporan
 import LaporanPenjualan from "layouts/laporan/penjualan";
-import LaporanBeban from "layouts/laporan/jurnal";
 import LaporanLabaRugi from "layouts/laporan/laba-rugi";
-import MasterPelanggan from "layouts/masterpelanggan";
+
+//jurnal
+import JurnalPenjualan from "layouts/jurnal/penjualan"
+import JurnalBeban from "layouts/jurnal/beban";
+import JurnalDP from "layouts/jurnal/dp";
+
+//master
 import MasterCOA from "layouts/mastercoa";
 import MasterProduk from "layouts/masterproduk";
+import MasterPelanggan from "layouts/masterpelanggan";
+
 import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
-import TransaksiInput from "layouts/transaksi/input";
+import TransaksiInput from "layouts/transaksi/penjualan";
 import UserManagement from "layouts/usermanagement";
 import VerifikasiPenjualan from "layouts/transaksi/verifikasi";
 // import SignUp from "layouts/authentication/sign-up";
@@ -48,37 +56,37 @@ const routes = [
     name: "Master Data",
     key: "master-data",
     // icon: <Database size="12px" />,
-    icon: <CreditCard size="12px" />, 
+    icon: <CreditCard size="12px" />,
     collapse: [
-      { 
-        name: "Master Akun (COA)", 
-        key: "master-coa", 
-        route: "/master-data/coa", 
+      {
+        name: "Master Akun (COA)",
+        key: "master-coa",
+        route: "/master-data/coa",
         // icon: <Book size="12px" />, 
         // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />, 
-        component: <MasterCOA />, 
-        isChild: true 
+        icon: <CreditCard size="12px" />,
+        component: <MasterCOA />,
+        isChild: true
       },
-      { 
-        name: "Master Produk", 
-        key: "master-produk", 
-        route: "/master-data/produk", 
+      {
+        name: "Master Produk",
+        key: "master-produk",
+        route: "/master-data/produk",
         // icon: <Box size="12px" />, 
         // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />, 
+        icon: <CreditCard size="12px" />,
         component: <MasterProduk />,
-        isChild: true 
+        isChild: true
       },
-      { 
-        name: "Master Pelanggan", 
-        key: "master-pelanggan", 
-        route: "/master-data/pelanggan", 
+      {
+        name: "Master Pelanggan",
+        key: "master-pelanggan",
+        route: "/master-data/pelanggan",
         // icon: <Users size="12px" />, 
         // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />, 
-        component: <MasterPelanggan />, 
-        isChild: true 
+        icon: <CreditCard size="12px" />,
+        component: <MasterPelanggan />,
+        isChild: true
       },
     ],
   },
@@ -90,32 +98,32 @@ const routes = [
     key: "transaksi",
     icon: <CreditCard size="12px" />,
     collapse: [
-      { 
-        name: "Input Penjualan", 
-        key: "transaksi-input", 
-        route: "/transaksi/input", 
-        icon: <CreditCard size="12px" />, 
-        component: <TransaksiInput />, 
-        isChild: true 
+      {
+        name: "Input Penjualan",
+        key: "transaksi-penjualan",
+        route: "/transaksi/penjualan",
+        icon: <CreditCard size="12px" />,
+        component: <TransaksiInput />,
+        isChild: true
       },
-      { 
-        name: "DP Pembayaran", 
-        key: "transaksi-dp", 
-        route: "/transaksi/dp", 
+      {
+        name: "DP Pembayaran",
+        key: "transaksi-dp",
+        route: "/transaksi/dp",
         // icon: <Wallet size="12px" />,
-        icon: <CreditCard size="12px" />, 
-        component: <TransaksiDP />, 
-        isChild: true 
+        icon: <CreditCard size="12px" />,
+        component: <TransaksiDP />,
+        isChild: true
       },
-      { 
-        name: "Verifikasi Penjualan", 
-        key: "transaksi-verifikasi", 
-        route: "/transaksi/verifikasi", 
+      {
+        name: "Verifikasi Penjualan",
+        key: "transaksi-verifikasi",
+        route: "/transaksi/verifikasi",
         // icon: <CheckCircle size="12px" />, 
         // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />, 
-        component: <VerifikasiPenjualan />, 
-        isChild: true 
+        icon: <CreditCard size="12px" />,
+        component: <VerifikasiPenjualan />,
+        isChild: true
       }
     ],
   },
@@ -136,14 +144,6 @@ const routes = [
         isChild: true
       },
       {
-        name: "Laporan Beban",
-        key: "laporan-beban",
-        route: "/laporan/beban",
-        icon: <Document size="12px" />,
-        component: <LaporanBeban />,
-        isChild: true
-      },
-      {
         name: "Laporan Laba Rugi",
         key: "laporan-laba-rugi",
         route: "/laporan/laba-rugi",
@@ -159,10 +159,43 @@ const routes = [
         icon: <Document size="12px" />,
         component: <BukuBesar />,
         isChild: true
-      }
+      },
     ],
   },
 
+  {
+    type: "collapse",
+    name: "Jurnal",
+    key: "jurnal",
+    icon: <Document size="12px" />,
+    collapse: [
+      {
+        type: "collapse",
+        name: "Jurnal Penjualan",
+        key: "jurnal-penjualan",
+        route: "/jurnal/penjualan",
+        icon: <Document size="12px" />,
+        component: <JurnalPenjualan />,
+        isChild: true
+      },
+      {
+        name: "Jurnal Beban",
+        key: "jurnal-beban",
+        route: "/jurnal/beban",
+        icon: <Document size="12px" />,
+        component: <JurnalBeban />,
+        isChild: true
+      },
+      {
+        name: "Jurnal DP",
+        key: "jurnal-dp",
+        route: "/jurnal/dp",
+        icon: <Document size="12px" />,
+        component: <JurnalDP />,
+        isChild: true
+      }
+    ],
+  },
   {
     type: "collapse",
     name: "Beban Operasional",
@@ -170,7 +203,7 @@ const routes = [
     route: "/beban-operasional",
     // icon: <Calculator size="12px" />,
     // component: <TransaksiDP />, 
-    icon: <CreditCard size="12px" />, 
+    icon: <CreditCard size="12px" />,
     component: <BebanOperasional />,
     noCollapse: true,
   },

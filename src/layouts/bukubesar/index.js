@@ -38,10 +38,12 @@ function BukuBesar() {
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card>
-              <SoftBox p={3}>
-                <SoftTypography variant="h6">Buku Besar</SoftTypography>
 
-                {/* Filter Section */}
+              <SoftBox p={3}>
+                <SoftTypography variant="h6">
+                  Buku Besar
+                </SoftTypography>
+
                 <Grid container spacing={2} mb={2} alignItems="flex-end">
 
                   <Grid item xs={12} md={3}>
@@ -91,9 +93,7 @@ function BukuBesar() {
                       color="primary"
                       fullWidth
                       sx={{ mt: { xs: 4, md: 4 }, color: "inherit" }}
-                      onClick={() =>
-                        setFilter({ from: "", to: "", kode_akun: "" })
-                      }
+                      onClick={() => setFilter({ from: "", to: "", kode_akun: "" })}
                     >
                       <Icon sx={{ mr: 1, color: "white !important" }}>
                         restart_alt
@@ -103,9 +103,11 @@ function BukuBesar() {
                       </SoftTypography>
                     </Button>
                   </Grid>
-                </Grid>
 
-                {/* Table Section */}
+                </Grid>
+              </SoftBox>
+              <SoftBox>
+
                 <Card>
                   <SoftBox
                     sx={{
@@ -120,6 +122,11 @@ function BukuBesar() {
                     <Table
                       columns={columns}
                       rows={filteredRows.map((r) => ({
+                        id: (
+                          <SoftTypography variant="caption" color="text">
+                            {r.id}
+                          </SoftTypography>
+                        ),
                         tanggal: (
                           <SoftTypography variant="caption" color="text">
                             {r.tanggal}
@@ -148,6 +155,16 @@ function BukuBesar() {
                         saldo: (
                           <SoftTypography variant="caption" color="text">
                             {r.saldo.toLocaleString("id-ID")}
+                          </SoftTypography>
+                        ),
+                        ref_transaksi: (
+                          <SoftTypography variant="caption" color="text">
+                            {r.ref_transaksi}
+                          </SoftTypography>
+                        ),
+                        created_at: (
+                          <SoftTypography variant="caption" color="text">
+                            {r.created_at}
                           </SoftTypography>
                         ),
                       }))}

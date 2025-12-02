@@ -24,19 +24,20 @@ import laporanPenjualanTableData from "./data/penjualan";
 export default function LaporanPenjualan() {
   const { rows: initialRows, columns } = laporanPenjualanTableData;
 
+  // langsung pakai data JSON tanpa parsing JSX
   const [data, setData] = useState(initialRows);
+
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // FORM BARU SESUAI COLUMNS
   const [form, setForm] = useState({
-    id_laporan: "",
-    tanggal_awal: "",
-    tanggal_akhir: "",
-    total_penjualan: "",
-    total_transaksi: "",
-    produk_terlaris: "",
-    periode: "",
+    id_jurnal_penjualan: "",
+    id_penjualan: "",
+    tanggal: "",
+    kode: "",
+    nominal: "",
+    tipe_balance: "",
+    keterangan: "",
     created_at: "",
   });
 
@@ -52,54 +53,47 @@ export default function LaporanPenjualan() {
     const updated = [...data];
     updated[editingIndex] = {
       ...form,
-      total_penjualan: Number(form.total_penjualan),
-      total_transaksi: Number(form.total_transaksi),
+      nominal: Number(form.nominal),
+      created_at: form.created_at || new Date().toISOString().split("T")[0],
     };
     setData(updated);
     setOpen(false);
   }
 
-  // DELETE
+  // DELETE ROW
   function remove(i) {
     if (!confirm("Hapus data ini?")) return;
     setData((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  // BUILD TABLE ROWS
+  // BUILD TABLE ROWS (untuk ditampilkan di Soft UI Dashboard)
   const tableRows = data.map((row, index) => ({
-    id_laporan: (
+    id_jurnal_penjualan: row.id_jurnal_penjualan,
+    id_penjualan: row.id_penjualan,
+
+    tanggal: (
       <SoftTypography variant="caption" color="text">
-        {row.id_laporan}
+        {row.tanggal}
       </SoftTypography>
     ),
-    tanggal_awal: (
+    kode: (
       <SoftTypography variant="caption" color="text">
-        {row.tanggal_awal}
+        {row.kode}
       </SoftTypography>
     ),
-    tanggal_akhir: (
+    nominal: (
       <SoftTypography variant="caption" color="text">
-        {row.tanggal_akhir}
+        Rp{Number(row.nominal).toLocaleString("id-ID")}
       </SoftTypography>
     ),
-    total_penjualan: (
+    tipe_balance: (
       <SoftTypography variant="caption" color="text">
-        Rp{Number(row.total_penjualan).toLocaleString("id-ID")}
+        {row.tipe_balance}
       </SoftTypography>
     ),
-    total_transaksi: (
+    keterangan: (
       <SoftTypography variant="caption" color="text">
-        {row.total_transaksi}
-      </SoftTypography>
-    ),
-    produk_terlaris: (
-      <SoftTypography variant="caption" color="text">
-        {row.produk_terlaris}
-      </SoftTypography>
-    ),
-    periode: (
-      <SoftTypography variant="caption" color="text">
-        {row.periode}
+        {row.keterangan}
       </SoftTypography>
     ),
     created_at: (
@@ -107,6 +101,7 @@ export default function LaporanPenjualan() {
         {row.created_at}
       </SoftTypography>
     ),
+
     action: (
       <SoftBox display="flex" justifyContent="center" gap={1}>
         <IconButton color="info" size="small" onClick={() => openEdit(index)}>
@@ -129,7 +124,7 @@ export default function LaporanPenjualan() {
             <Card>
               {/* FILTER */}
               <SoftBox p={3}>
-                <SoftTypography variant="h6">Laporan Penjualan</SoftTypography>
+                <SoftTypography variant="h6">Jurnal Penjualan</SoftTypography>
                 <Grid container spacing={2} mb={2} alignItems="flex-end">
                   <Grid item xs={12} md={3}>
                     <SoftTypography fontSize="14px" fontWeight="medium">
@@ -182,7 +177,7 @@ export default function LaporanPenjualan() {
         </Grid>
       </SoftBox>
 
-      {/* EDIT MODAL */}
+      {/* MODAL EDIT */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box
           sx={{
@@ -195,20 +190,27 @@ export default function LaporanPenjualan() {
           }}
         >
           <SoftTypography variant="h6" mb={2}>
-            Edit Laporan Penjualan
+            Edit Data Jurnal Penjualan
           </SoftTypography>
 
-          {Object.keys(form).map((f) => (
-            <Box key={f} mb={2}>
-              <SoftTypography variant="caption" fontWeight="medium">
-                {f.toUpperCase()}
+          {[
+            "tanggal",
+            "kode",
+            "nominal",
+            "tipe_balance",
+            "keterangan",
+            "created_at",
+          ].map((field) => (
+            <Box key={field} mb={2}>
+              <SoftTypography variant="caption">
+                {field.toUpperCase()}
               </SoftTypography>
 
               <TextField
                 fullWidth
-                type={f.includes("tanggal") || f.includes("created") ? "date" : "text"}
-                value={form[f]}
-                onChange={(e) => setForm({ ...form, [f]: e.target.value })}
+                type={field === "tanggal" || field === "created_at" ? "date" : "text"}
+                value={form[field]}
+                onChange={(e) => setForm({ ...form, [field]: e.target.value })}
               />
             </Box>
           ))}

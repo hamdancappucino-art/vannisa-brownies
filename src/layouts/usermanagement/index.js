@@ -156,34 +156,36 @@ function UserManagement() {
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card>
-              <SoftBox p={3}>
-                <SoftTypography variant="h6" mb={2}>
+              <SoftBox display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                p={3}
+              >
+                <SoftTypography variant="h6">
                   User Management
                 </SoftTypography>
 
-                {/* HEADER */}
-                <Grid container spacing={2} mb={2} justifyContent="flex-end">
-                  <Button variant="contained" color="success" onClick={openAdd}>
-                    <Icon sx={{ mr: 1 }}>add</Icon>
-                    Tambah User
-                  </Button>
-                </Grid>
+                {/* <Grid container spacing={2} mb={2} justifyContent="flex-end"> */}
+                <Button variant="contained" color="success" onClick={openAdd} sx={{ color: "inherit", minWidth: "150px" }}>
+                  <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
 
-                {/* TABLE */}
-                <Card>
-                  <SoftBox
-                    sx={{
-                      "& .MuiTableRow-root:not(:last-child)": {
-                        "& td": {
-                          borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                            `${borderWidth[1]} solid ${borderColor}`,
-                        },
-                      },
-                    }}
-                  >
-                    <Table columns={columns} rows={tableRows} />
-                  </SoftBox>
-                </Card>
+                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                    Tambah User
+                  </SoftTypography>
+                </Button>
+                {/* </Grid> */}
+              </SoftBox>
+              <SoftBox
+                sx={{
+                  "& .MuiTableRow-root:not(:last-child)": {
+                    "& td": {
+                      borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                        `${borderWidth[1]} solid ${borderColor}`,
+                    },
+                  },
+                }}
+              >
+                <Table columns={columns} rows={tableRows} />
               </SoftBox>
             </Card>
           </Grid>

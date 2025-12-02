@@ -64,83 +64,83 @@ function VerifikasiPenjualan() {
                   Verifikasi Penjualan
                 </SoftTypography>
 
-                {/* TABLE */}
-                <Card>
-                  <SoftBox
-                    sx={{
-                      "& .MuiTableRow-root:not(:last-child)": {
-                        "& td": {
-                          borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                            `${borderWidth[1]} solid ${borderColor}`,
-                        },
-                      },
-                    }}
-                  >
-                    <Table
-                      columns={columns}
-                      rows={rows.map((r) => ({
-                        id_penjualan: (
-                          <SoftTypography variant="caption" color="text">
-                            {r.id_penjualan}
-                          </SoftTypography>
-                        ),
-
-                        tanggal_jual: (
-                          <SoftTypography variant="caption" color="text">
-                            {r.tanggal_jual}
-                          </SoftTypography>
-                        ),
-
-                        pelanggan: (
-                          <SoftTypography variant="caption" color="text">
-                            {r.pelanggan}
-                          </SoftTypography>
-                        ),
-
-                        produk: (
-                          <SoftTypography variant="caption" color="text">
-                            {r.produk}
-                          </SoftTypography>
-                        ),
-
-                        total_harga: (
-                          <SoftTypography variant="caption" color="text">
-                            {r.total_harga.toLocaleString("id-ID")}
-                          </SoftTypography>
-                        ),
-
-                        status: (
-                          <SoftTypography variant="caption" color="text">
-                            {r.diverifikasi
-                              ? `Diverifikasi oleh ${r.diverifikasi_oleh}`
-                              : "Pending"}
-                          </SoftTypography>
-                        ),
-
-                        aksi: (
-                          <>
-                            <IconButton onClick={() => openDetail(r)}>
-                              <VisibilityIcon />
-                            </IconButton>
-
-                            {!r.diverifikasi && (
-                              <IconButton onClick={() => verify(r, true)}>
-                                <CheckIcon color="success" />
-                              </IconButton>
-                            )}
-
-                            {r.diverifikasi && (
-                              <IconButton onClick={() => verify(r, false)}>
-                                <CloseIcon color="error" />
-                              </IconButton>
-                            )}
-                          </>
-                        ),
-                      }))}
-                    />
-                  </SoftBox>
-                </Card>
               </SoftBox>
+
+              <Card>
+                <SoftBox
+                  sx={{
+                    "& .MuiTableRow-root:not(:last-child)": {
+                      "& td": {
+                        borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                          `${borderWidth[1]} solid ${borderColor}`,
+                      },
+                    },
+                  }}
+                >
+                  <Table
+                    columns={columns}
+                    rows={rows.map((r) => ({
+                      id_penjualan: (
+                        <SoftTypography variant="caption" color="text">
+                          {"INV-" + r.id_penjualan}
+                        </SoftTypography>
+                      ),
+
+                      tanggal_jual: (
+                        <SoftTypography variant="caption" color="text">
+                          {r.tanggal_jual}
+                        </SoftTypography>
+                      ),
+
+                      pelanggan: (
+                        <SoftTypography variant="caption" color="text">
+                          {r.pelanggan}
+                        </SoftTypography>
+                      ),
+
+                      produk: (
+                        <SoftTypography variant="caption" color="text">
+                          {r.produk}
+                        </SoftTypography>
+                      ),
+
+                      total_harga: (
+                        <SoftTypography variant="caption" color="text">
+                          {r.total_harga.toLocaleString("id-ID")}
+                        </SoftTypography>
+                      ),
+
+                      status: (
+                        <SoftTypography variant="caption" color="text">
+                          {r.diverifikasi
+                            ? `Diverifikasi oleh ${r.diverifikasi_oleh}`
+                            : "Pending"}
+                        </SoftTypography>
+                      ),
+
+                      aksi: (
+                        <>
+                          <IconButton onClick={() => openDetail(r)}>
+                            <VisibilityIcon />
+                          </IconButton>
+
+                          {!r.diverifikasi && (
+                            <IconButton onClick={() => verify(r, true)}>
+                              <CheckIcon color="success" />
+                            </IconButton>
+                          )}
+
+                          {r.diverifikasi && (
+                            <IconButton onClick={() => verify(r, false)}>
+                              <CloseIcon color="error" />
+                            </IconButton>
+                          )}
+                        </>
+                      ),
+                    }))}
+                  />
+                </SoftBox>
+              </Card>
             </Card>
           </Grid>
         </Grid>
@@ -164,7 +164,7 @@ function VerifikasiPenjualan() {
 
           {detail && (
             <SoftBox>
-              <div><strong>Invoice:</strong> {detail.id_penjualan}</div>
+              <div><strong>Invoice:</strong> {"INV-" + detail.id_penjualan}</div>
               <div><strong>Pelanggan:</strong> {detail.pelanggan}</div>
               <div><strong>Produk:</strong> {detail.produk}</div>
               <div><strong>Total:</strong> {detail.total_harga}</div>
