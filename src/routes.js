@@ -26,11 +26,9 @@ import SignIn from "layouts/authentication/sign-in";
 import TransaksiInput from "layouts/transaksi/penjualan";
 import UserManagement from "layouts/usermanagement";
 import VerifikasiPenjualan from "layouts/transaksi/verifikasi";
-// import SignUp from "layouts/authentication/sign-up";
-
 import TransaksiDP from "layouts/transaksi/dp";
-// import Produk from "layouts/produk";
 import Office from "examples/Icons/Office";
+import Master from "examples/Icons/Master";
 import CustomerSupport from "examples/Icons/CustomerSupport";
 
 // Vannisa Brownies icons
@@ -50,21 +48,17 @@ const routes = [
     noCollapse: true,
   },
 
-  // ======= COLLAPSE: MASTER DATA =======
   {
     type: "collapse",
     name: "Master Data",
     key: "master-data",
-    // icon: <Database size="12px" />,
-    icon: <CreditCard size="12px" />,
+    icon: <Master size="12px" />,
     collapse: [
       {
         name: "Master Akun (COA)",
         key: "master-coa",
         route: "/master-data/coa",
-        // icon: <Book size="12px" />, 
-        // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />,
+        icon: <Master size="12px" />,
         component: <MasterCOA />,
         isChild: true
       },
@@ -72,9 +66,7 @@ const routes = [
         name: "Master Produk",
         key: "master-produk",
         route: "/master-data/produk",
-        // icon: <Box size="12px" />, 
-        // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />,
+        icon: <Master size="12px" />,
         component: <MasterProduk />,
         isChild: true
       },
@@ -82,16 +74,13 @@ const routes = [
         name: "Master Pelanggan",
         key: "master-pelanggan",
         route: "/master-data/pelanggan",
-        // icon: <Users size="12px" />, 
-        // component: <TransaksiDP />, 
-        icon: <CreditCard size="12px" />,
+        icon: <Master size="12px" />,
         component: <MasterPelanggan />,
         isChild: true
       },
     ],
   },
 
-  // ======= COLLAPSE: TRANSAKSI =======
   {
     type: "collapse",
     name: "Transaksi",
@@ -110,7 +99,6 @@ const routes = [
         name: "DP Pembayaran",
         key: "transaksi-dp",
         route: "/transaksi/dp",
-        // icon: <Wallet size="12px" />,
         icon: <CreditCard size="12px" />,
         component: <TransaksiDP />,
         isChild: true
@@ -119,8 +107,6 @@ const routes = [
         name: "Verifikasi Penjualan",
         key: "transaksi-verifikasi",
         route: "/transaksi/verifikasi",
-        // icon: <CheckCircle size="12px" />, 
-        // component: <TransaksiDP />, 
         icon: <CreditCard size="12px" />,
         component: <VerifikasiPenjualan />,
         isChild: true
@@ -128,7 +114,6 @@ const routes = [
     ],
   },
 
-  // ======= COLLAPSE: LAPORAN =======
   {
     type: "collapse",
     name: "Laporan",
@@ -154,8 +139,7 @@ const routes = [
       {
         name: "Buku Besar",
         key: "buku-besar",
-        route: "/buku-besar",
-        // component: <LaporanJurnal />,
+        route: "/laporan/buku-besar",
         icon: <Document size="12px" />,
         component: <BukuBesar />,
         isChild: true
@@ -201,8 +185,6 @@ const routes = [
     name: "Beban Operasional",
     key: "beban-operasional",
     route: "/beban-operasional",
-    // icon: <Calculator size="12px" />,
-    // component: <TransaksiDP />, 
     icon: <CreditCard size="12px" />,
     component: <BebanOperasional />,
     noCollapse: true,
@@ -213,7 +195,6 @@ const routes = [
     name: "User Management",
     key: "user-management",
     route: "/user-management",
-    // component: <Profile />,
     icon: <CustomerSupport size="12px" />,
     component: <UserManagement />,
     noCollapse: true,

@@ -22,16 +22,21 @@ import Footer from "examples/Footer";
 
 import Table from "examples/Tables/Table";
 
-// PAKAI DATA RAW
 import bebanTableData from "./data/beban";
 
 export default function BebanOperasional() {
-  // ambil column dan rows asli
   const { columns, rows: rawRows } = bebanTableData;
 
   const [data, setData] = useState(rawRows);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(5);
+
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
 
   const [form, setForm] = useState({
     jenis_beban: "",
@@ -46,10 +51,9 @@ export default function BebanOperasional() {
   function formatDate(dateString) {
     const d = new Date(dateString);
     if (isNaN(d)) return dateString;
-    return d.toISOString().slice(0, 10); // -> YYYY-MM-DD
+    return d.toISOString().slice(0, 10);
   }
 
-  // OPEN ADD
   function openAdd() {
     setEditingIndex(null);
     setForm({
@@ -64,17 +68,14 @@ export default function BebanOperasional() {
     setOpen(true);
   }
 
-  // OPEN EDIT
   function openEdit(i) {
     setEditingIndex(i);
     setForm(data[i]);
     setOpen(true);
   }
 
-  // SAVE
   function save() {
     if (editingIndex === null) {
-      // tambah
       setData((prev) => [
         {
           ...form,
@@ -83,78 +84,79 @@ export default function BebanOperasional() {
         ...prev,
       ]);
     } else {
-      // update
       setData((prev) =>
         prev.map((r, idx) => (idx === editingIndex ? form : r))
       );
     }
-
     setOpen(false);
+    setPage(1);
   }
 
-  // DELETE
   function remove(i) {
     if (!confirm("Hapus data beban ini?")) return;
     setData((prev) => prev.filter((_, idx) => idx !== i));
+    setPage(1);
   }
 
-  // CONVERT DATA → JSX ROWS
-  const tableRows = data.map((row, index) => ({
-    id: (
-      <SoftTypography variant="caption" color="text">
-        {row.id}
-      </SoftTypography>
-    ),
-    jenis_beban: (
-      <SoftTypography variant="caption" color="text">
-        {row.jenis_beban}
-      </SoftTypography>
-    ),
-    kode_akun: (
-      <SoftTypography variant="caption" color="text">
-        {row.kode_akun}
-      </SoftTypography>
-    ),
-    nominal: (
-      <SoftTypography variant="caption" color="text">
-        {row.nominal.toLocaleString("id-ID", {
-          style: "currency",
-          currency: "IDR",
-        })}
-      </SoftTypography>
-    ),
-    tanggal_beban: (
-      <SoftTypography variant="caption" color="text">
-        {formatDate(row.tanggal_beban)}
-      </SoftTypography>
-    ),
-    keterangan: (
-      <SoftTypography variant="caption" color="text">
-        {row.keterangan}
-      </SoftTypography>
-    ),
-    id_user: (
-      <SoftTypography variant="caption" color="text">
-        {row.id_user}
-      </SoftTypography>
-    ),
-    created_at: (
-      <SoftTypography variant="caption" color="text">
-        {formatDate(row.created_at)}
-      </SoftTypography>
-    ),
-    aksi: (
-      <SoftBox display="flex" justifyContent="center" gap={1}>
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
-          <EditIcon />
-        </IconButton>
+  const tableRows = currentRows.map((row, index) => {
+    const realIndex = indexOfFirstRow + index;
+    return {
+      id: (
+        <SoftTypography variant="caption" color="text">
+          {row.id}
+        </SoftTypography>
+      ),
+      jenis_beban: (
+        <SoftTypography variant="caption" color="text">
+          {row.jenis_beban}
+        </SoftTypography>
+      ),
+      kode_akun: (
+        <SoftTypography variant="caption" color="text">
+          {row.kode_akun}
+        </SoftTypography>
+      ),
+      nominal: (
+        <SoftTypography variant="caption" color="text">
+          {row.nominal.toLocaleString("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          })}
+        </SoftTypography>
+      ),
+      tanggal_beban: (
+        <SoftTypography variant="caption" color="text">
+          {formatDate(row.tanggal_beban)}
+        </SoftTypography>
+      ),
+      keterangan: (
+        <SoftTypography variant="caption" color="text">
+          {row.keterangan}
+        </SoftTypography>
+      ),
+      id_user: (
+        <SoftTypography variant="caption" color="text">
+          {row.id_user}
+        </SoftTypography>
+      ),
+      created_at: (
+        <SoftTypography variant="caption" color="text">
+          {formatDate(row.created_at)}
+        </SoftTypography>
+      ),
+      aksi: (
+        <SoftBox display="flex" justifyContent="center" gap={1}>
+          <IconButton color="info" size="small" onClick={() => openEdit(realIndex)}>
+            <EditIcon />
+          </IconButton>
 
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
-          <DeleteIcon />
-        </IconButton>
-      </SoftBox>
-    ),
-  }));
+          <IconButton color="error" size="small" onClick={() => remove(realIndex)}>
+            <DeleteIcon />
+          </IconButton>
+        </SoftBox>
+      ),
+    }
+  });
 
   return (
     <DashboardLayout>
@@ -194,6 +196,37 @@ export default function BebanOperasional() {
                 }}
               >
                 <Table columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]} rows={tableRows} />
+                <SoftBox
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  p={2}
+                  gap={2}
+                >
+                  <Button
+                    variant="outlined"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {Math.ceil(data.length / rowsPerPage)}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === Math.ceil(data.length / rowsPerPage)}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>

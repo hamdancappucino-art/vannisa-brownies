@@ -1,6 +1,4 @@
 import { useState } from "react";
-
-// @mui material components
 import Grid from "@mui/material/Grid";
 import Icon from "@mui/material/Icon";
 import {
@@ -12,39 +10,33 @@ import {
   IconButton,
   Switch,
 } from "@mui/material";
-
-// Vannisa Brownies components
 import SoftBox from "components/SoftBox";
 import SoftTypography from "components/SoftTypography";
-
-// Layouts
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-
-// Icons
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-
-// Table Soft UI
 import Table from "examples/Tables/Table";
-
-// Data
 import userTableData from "./data/user";
 
 function UserManagement() {
   const { columns } = userTableData;
 
-  // ================================
-  // STATE DATA USER
-  // ================================
   const [data, setData] = useState(userTableData.rows);
 
-  // ================================
-  // MODAL STATE
-  // ================================
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(5);
+
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
+
   const [open, setOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [visiblePassword, setVisiblePassword] = useState({});
 
   const [form, setForm] = useState({
     id: "",
@@ -57,14 +49,6 @@ function UserManagement() {
     is_active: true,
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // ================================
-  // OPEN ADD
-  // ================================
   const openAdd = () => {
     setForm({
       id: data.length + 1,
@@ -80,75 +64,108 @@ function UserManagement() {
     setOpen(true);
   };
 
-  // ================================
-  // OPEN EDIT
-  // ================================
-  const openEdit = (index) => {
-    setForm(data[index]);
-    setEditIndex(index);
+  const openEdit = (globalIndex) => {
+    setForm(data[globalIndex]);
+    setEditIndex(globalIndex);
     setOpen(true);
   };
 
-  // ================================
-  // SAVE ADD/EDIT
-  // ================================
   const save = () => {
     let newData = [...data];
 
     if (editIndex !== null) {
-      newData[editIndex] = form; // update
+      newData[editIndex] = form;
     } else {
-      newData.push(form); // add new
+      newData.push(form);
+      setPage(Math.ceil(newData.length / rowsPerPage));
     }
 
     setData(newData);
     setOpen(false);
   };
 
-  // ================================
-  // REMOVE
-  // ================================
-  const remove = (index) => {
-    const newData = data.filter((_, i) => i !== index);
+  const remove = (globalIndex) => {
+    const newData = data.filter((_, i) => i !== globalIndex);
     setData(newData);
+    setPage((prev) => {
+      const maxPage = Math.ceil(newData.length / rowsPerPage);
+      return prev > maxPage ? maxPage : prev;
+    });
   };
 
-  // ================================
-  // TABLE ROWS
-  // ================================
-  const tableRows = data.map((row, index) => ({
-    id: <SoftTypography variant="caption" color="text">{row.id}</SoftTypography>,
-    username: <SoftTypography variant="caption" color="text">{row.username}</SoftTypography>,
-    password: <SoftTypography variant="caption" color="text">{row.password}</SoftTypography>,
-    nama_lengkap: <SoftTypography variant="caption" color="text">{row.nama_lengkap}</SoftTypography>,
-    email: <SoftTypography variant="caption" color="text">{row.email}</SoftTypography>,
-    no_telp: <SoftTypography variant="caption" color="text">{row.no_telp}</SoftTypography>,
-    role: <SoftTypography variant="caption" color="text">{row.role}</SoftTypography>,
-    is_active: (
-      <SoftTypography
-        variant="caption"
-        color={row.is_active ? "success" : "error"}
-        fontWeight="medium"
-      >
-        {row.is_active ? "Aktif" : "Tidak Aktif"}
-      </SoftTypography>
-    ),
+  const tableRows = currentRows.map((row, index) => {
+    const globalIndex = index + indexOfFirstRow;
 
-    aksi: (
-      <SoftBox display="flex" gap={1} justifyContent="center">
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
-          <EditIcon />
-        </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
-          <DeleteIcon />
-        </IconButton>
-      </SoftBox>
-    ),
-  }));
+    return {
+      id: <SoftTypography variant="caption">{row.id}</SoftTypography>,
+      username: <SoftTypography variant="caption">{row.username}</SoftTypography>,
+      password: (
+        <SoftBox
+          display="flex"
+          alignItems="center"
+          justifyContent="center" 
+          gap={1}
+          width="100%"
+        >
+          <SoftTypography variant="caption">
+            {visiblePassword[row.id] ? row.password : "•••••••"}
+          </SoftTypography>
 
-  // ================================
-  // RENDER PAGE
-  // ================================
+          <IconButton
+            size="small"
+            sx={{ padding: "2px" }}
+            onClick={() =>
+              setVisiblePassword((prev) => ({
+                ...prev,
+                [row.id]: !prev[row.id],
+              }))
+            }
+          >
+            <Icon sx={{ fontSize: "18px !important" }}>
+              {visiblePassword[row.id] ? "visibility_off" : "visibility"}
+            </Icon>
+          </IconButton>
+        </SoftBox>
+      ),
+      nama_lengkap: (
+        <SoftTypography variant="caption">{row.nama_lengkap}</SoftTypography>
+      ),
+      email: <SoftTypography variant="caption">{row.email}</SoftTypography>,
+      no_telp: <SoftTypography variant="caption">{row.no_telp}</SoftTypography>,
+      role: <SoftTypography variant="caption">{row.role}</SoftTypography>,
+
+      is_active: (
+        <SoftTypography
+          variant="caption"
+          color={row.is_active ? "success" : "error"}
+          fontWeight="medium"
+        >
+          {row.is_active ? "Aktif" : "Tidak Aktif"}
+        </SoftTypography>
+      ),
+
+      aksi: (
+        <SoftBox display="flex" gap={1} justifyContent="center">
+          <IconButton
+            color="info"
+            size="small"
+            onClick={() => openEdit(globalIndex)}
+          >
+            <EditIcon />
+          </IconButton>
+
+          <IconButton
+            color="error"
+            size="small"
+            onClick={() => remove(globalIndex)}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </SoftBox>
+      ),
+    };
+  });
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -156,25 +173,27 @@ function UserManagement() {
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card>
-              <SoftBox display="flex"
+              <SoftBox
+                display="flex"
                 justifyContent="space-between"
                 alignItems="center"
                 p={3}
               >
-                <SoftTypography variant="h6">
-                  User Management
-                </SoftTypography>
+                <SoftTypography variant="h6">User Management</SoftTypography>
 
-                {/* <Grid container spacing={2} mb={2} justifyContent="flex-end"> */}
-                <Button variant="contained" color="success" onClick={openAdd} sx={{ color: "inherit", minWidth: "150px" }}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={openAdd}
+                  sx={{ color: "inherit", minWidth: "150px" }}
+                >
                   <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
-
                   <SoftTypography fontSize="13px" fontWeight="medium" color="black">
                     Tambah User
                   </SoftTypography>
                 </Button>
-                {/* </Grid> */}
               </SoftBox>
+
               <SoftBox
                 sx={{
                   "& .MuiTableRow-root:not(:last-child)": {
@@ -186,18 +205,48 @@ function UserManagement() {
                 }}
               >
                 <Table columns={columns} rows={tableRows} />
+                <SoftBox
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  p={2}
+                  gap={2}
+                >
+                  <Button
+                    variant="outlined"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {Math.ceil(data.length / rowsPerPage)}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === Math.ceil(data.length / rowsPerPage)}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>
         </Grid>
       </SoftBox>
-
       <Footer />
-
-      {/* =============================
-           MODAL ADD / EDIT USER 
-        ============================= */}
-      <Modal open={open} onClose={() => setOpen(false)} sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+      >
         <Box
           sx={{
             width: 450,
@@ -214,81 +263,91 @@ function UserManagement() {
           </SoftTypography>
 
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Username
-            </SoftTypography>
+            <SoftTypography variant="caption">Username</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
             />
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Password
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
+            <SoftTypography variant="caption">Password</SoftTypography>
+
+            <Box position="relative">
+              <TextField
+                fullWidth
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                size="small"
+                InputProps={{
+                  sx: {
+                    height: "40px !important",
+                    "& .MuiOutlinedInput-input": {
+                      padding: "6px 30px 6px 8px",
+                    },
+                  },
+                }}
+              />
+              <IconButton
+                onClick={() => setShowPassword(!showPassword)}
+                sx={{
+                  position: "absolute",
+                  right: "6px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  padding: "2px",
+                  minWidth: 0,
+                  minHeight: 0,
+                }}
+              >
+                <Icon sx={{ fontSize: "18px !important" }}>
+                  {showPassword ? "visibility_off" : "visibility"}
+                </Icon>
+              </IconButton>
+            </Box>
           </Box>
 
+
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Nama Lengkap
-            </SoftTypography>
+            <SoftTypography variant="caption">Nama Lengkap</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.nama_lengkap}
               onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
             />
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Email
-            </SoftTypography>
+            <SoftTypography variant="caption">Email</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              No Telp
-            </SoftTypography>
+            <SoftTypography variant="caption">No Telp</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.no_telp}
               onChange={(e) => setForm({ ...form, no_telp: e.target.value })}
             />
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Role
-            </SoftTypography>
+            <SoftTypography variant="caption">Role</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             />
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Status
-            </SoftTypography>
+            <SoftTypography variant="caption">Status</SoftTypography>
 
             <Box display="flex" alignItems="center" gap={1}>
               <Switch
@@ -297,14 +356,12 @@ function UserManagement() {
                   setForm({ ...form, is_active: e.target.checked })
                 }
               />
-
-              <SoftTypography variant="caption" fontWeight="medium">
+              <SoftTypography variant="caption">
                 {form.is_active ? "Aktif" : "Tidak Aktif"}
               </SoftTypography>
             </Box>
           </Box>
 
-          {/* BUTTONS */}
           <Box mt={3} textAlign="right">
             <Button onClick={() => setOpen(false)} sx={{ mr: 2 }}>
               Batal

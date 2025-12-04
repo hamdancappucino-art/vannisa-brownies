@@ -43,7 +43,7 @@ function Dashboard() {
             <Grid item xs={12} sm={6} xl={3}>
               <MiniStatisticsCard
                 title={{ text: "pendapatan harian" }}
-                count="Rp 53,000"
+                count="Rp 530.000"
                 percentage={{ color: "success", text: "+55%" }}
                 icon={{ color: "info", component: "paid" }}
               />
@@ -51,7 +51,7 @@ function Dashboard() {
             <Grid item xs={12} sm={6} xl={3}>
               <MiniStatisticsCard
                 title={{ text: "pendapatan bulanan" }}
-                count="Rp 2,300"
+                count="Rp 2.300.000"
                 percentage={{ color: "success", text: "+3%" }}
                 icon={{ color: "info", component: "public" }}
               />
@@ -59,7 +59,7 @@ function Dashboard() {
             <Grid item xs={12} sm={6} xl={3}>
               <MiniStatisticsCard
                 title={{ text: "pelanggan" }}
-                count="+3,462"
+                count="+212"
                 percentage={{ color: "error", text: "-2%" }}
                 icon={{ color: "info", component: "emoji_events" }}
               />
@@ -67,7 +67,7 @@ function Dashboard() {
             <Grid item xs={12} sm={6} xl={3}>
               <MiniStatisticsCard
                 title={{ text: "penjualan" }}
-                count="Rp 103,430"
+                count="+103"
                 percentage={{ color: "success", text: "+5%" }}
                 icon={{
                   color: "info",

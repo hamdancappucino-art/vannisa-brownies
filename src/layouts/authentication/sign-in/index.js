@@ -41,17 +41,17 @@ function SignIn() {
   return (
     <CoverLayout
       title="Welcome back"
-      description="Enter your email and password to sign in"
+      description="Enter your Username and password to sign in"
       image={curved9}
     >
       <SoftBox component="form" role="form">
         <SoftBox mb={2}>
           <SoftBox mb={1} ml={0.5}>
             <SoftTypography component="label" variant="caption" fontWeight="bold">
-              Email
+              Username
             </SoftTypography>
           </SoftBox>
-          <SoftInput type="email" placeholder="Email" />
+          <SoftInput type="username" placeholder="Username" />
         </SoftBox>
         <SoftBox mb={2}>
           <SoftBox mb={1} ml={0.5}>

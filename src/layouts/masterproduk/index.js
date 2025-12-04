@@ -36,11 +36,9 @@ export default function MasterProduk() {
     updated_at: "",
   });
 
-  // SAFE generate ID: jika format tidak sesuai, ambil angka terakhir yang valid atau reset ke 0
   function generateIDProduk(currentData) {
     if (!Array.isArray(currentData) || currentData.length === 0) return "PRD-001";
 
-    // cari last dengan id_produk yang sesuai format "PRD-xxx"
     const reversed = [...currentData].reverse();
     let foundNum = null;
     for (const item of reversed) {
@@ -68,11 +66,9 @@ export default function MasterProduk() {
     );
   }
 
-  // OPEN ADD
   function openAdd() {
     setEditingIndex(null);
 
-    // gunakan generateIDProduk dari data terkini untuk menghindari duplikasi
     const newId = generateIDProduk(data);
 
     setForm({
@@ -89,31 +85,25 @@ export default function MasterProduk() {
     setOpen(true);
   }
 
-  // OPEN EDIT
   function openEdit(i) {
     setEditingIndex(i);
-    // defensive copy
     const row = data[i] || {};
     setForm({ ...row });
     setOpen(true);
   }
 
-  // OPEN DETAIL POPUP
   function openDetailPopup(row) {
     setDetailProduk(row);
     setOpenDetail(true);
   }
 
-  // SAVE (CREATE/UPDATE)
   function save() {
-    // basic validation: nama_produk wajib
     if (!form.nama_produk || String(form.nama_produk).trim() === "") {
       alert("Nama produk harus diisi.");
       return;
     }
 
     if (editingIndex === null) {
-      // Pastikan id_produk belum ada (race condition kecil jika user buka modal lama)
       const exists = data.some((d) => d.id_produk === form.id_produk);
       const finalForm = {
         ...form,
@@ -122,7 +112,6 @@ export default function MasterProduk() {
       };
 
       if (exists) {
-        // generate ulang sampai unik (loop kecil)
         let attempt = 0;
         let newId = form.id_produk;
         while (data.some((d) => d.id_produk === newId) && attempt < 1000) {
@@ -134,13 +123,11 @@ export default function MasterProduk() {
 
       setData((prev) => [...prev, finalForm]);
     } else {
-      // EDIT
       const updatedForm = {
         ...form,
         updated_at: new Date().toISOString().split("T")[0],
       };
 
-      // update stok via fungsi khusus (opsional, tapi aman)
       const original = data[editingIndex] || {};
       if (String(original.stok) !== String(updatedForm.stok)) {
         updateStok(updatedForm.id_produk, updatedForm.stok);
@@ -153,13 +140,11 @@ export default function MasterProduk() {
     setOpen(false);
   }
 
-  // DELETE FUNCTION
   function remove(i) {
     if (!window.confirm("Hapus produk ini?")) return;
     setData((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  // ROWS: ketika klik ID tampil Detail popup
   const tableRows = data.map((row, index) => ({
     id_produk: (
       <SoftTypography
@@ -261,7 +246,6 @@ export default function MasterProduk() {
         </Grid>
       </SoftBox>
 
-      {/* MODAL DETAIL PRODUK */}
       <Modal open={openDetail} onClose={() => setOpenDetail(false)}>
         <Box
           sx={{
@@ -294,7 +278,6 @@ export default function MasterProduk() {
         </Box>
       </Modal>
 
-      {/* MODAL ADD / EDIT */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box
           sx={{
@@ -310,7 +293,6 @@ export default function MasterProduk() {
             {editingIndex === null ? "Tambah Produk" : "Edit Produk"}
           </SoftTypography>
 
-          {/* ID PRODUK — AUTO GENERATE, READONLY */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               ID PRODUK
@@ -322,7 +304,6 @@ export default function MasterProduk() {
             />
           </Box>
 
-          {/* NAMA PRODUK */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               NAMA PRODUK
@@ -335,7 +316,6 @@ export default function MasterProduk() {
             />
           </Box>
 
-          {/* DROPDOWN KATEGORI */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               KATEGORI
@@ -390,7 +370,6 @@ export default function MasterProduk() {
             </div>
           </Box>
 
-          {/* HARGA JUAL */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               HARGA JUAL
@@ -415,7 +394,6 @@ export default function MasterProduk() {
             />
           </Box>
 
-          {/* STOK */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               STOK
@@ -440,7 +418,6 @@ export default function MasterProduk() {
             />
           </Box>
 
-          {/* DROPDOWN SATUAN */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               SATUAN
@@ -506,7 +483,6 @@ export default function MasterProduk() {
           </Box>
         </Box>
       </Modal>
-
       <Footer />
     </DashboardLayout>
   );
