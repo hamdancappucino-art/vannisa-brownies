@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import {
@@ -17,20 +18,25 @@ import SoftBox from "components/SoftBox";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from "@mui/icons-material/Add";
-import Footer from "examples/Footer";
 
-// Table Soft UI
 import Table from "examples/Tables/Table";
+import Footer from "examples/Footer";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-// DATA RAW
-import coaTableData from "./data/coa";
+const API_URL = "http://localhost:5000/api/coa";
 
 export default function MasterCOA() {
-  const { columns, rows: rawRows } = coaTableData;
+  const columns = [
+    { name: "kode_akun", label: "Kode Akun", align: "center" },
+    { name: "nama_akun", label: "Nama Akun", align: "center" },
+    { name: "header_akun", label: "Header Akun", align: "center" },
+    { name: "tipe_balance", label: "Tipe Balance", align: "center" },
+    { name: "is_active", label: "Status", align: "center" },
+    { name: "tanggal", label: "Tanggal", align: "center" },
+  ];
 
-  // DATA STATE
-  const [data, setData] = useState(rawRows);
+  // STATE
+  const [data, setData] = useState([]);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
@@ -38,9 +44,23 @@ export default function MasterCOA() {
     kode_akun: "",
     nama_akun: "",
     header_akun: "",
-    tipe_balance: "Debit",
+    tipe_balance: "DEBIT",
     is_active: true,
   });
+
+  // FETCH DATA
+  async function fetchCOA() {
+    try {
+      const res = await axios.get(API_URL);
+      setData(res.data); // TAMPILKAN DATA ASLI TANPA DIUBAH
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  }
+
+  useEffect(() => {
+    fetchCOA();
+  }, []);
 
   // OPEN ADD
   function openAdd() {
@@ -49,7 +69,7 @@ export default function MasterCOA() {
       kode_akun: "",
       nama_akun: "",
       header_akun: "",
-      tipe_balance: "Debit",
+      tipe_balance: "DEBIT",
       is_active: true,
     });
     setOpen(true);
@@ -58,64 +78,78 @@ export default function MasterCOA() {
   // OPEN EDIT
   function openEdit(i) {
     setEditingIndex(i);
-    setForm(data[i]);
+    setForm({
+      ...data[i],
+      is_active: data[i].is_active === 1, // convert 1/0 → TRUE/FALSE
+    });
     setOpen(true);
   }
 
   // SAVE DATA
-  function save() {
-    if (editingIndex === null) {
-      setData((prev) => [...prev, form]);
-    } else {
-      setData((prev) => prev.map((r, idx) => (idx === editingIndex ? form : r)));
+  async function save() {
+    const payload = {
+      kode_akun: form.kode_akun,
+      nama_akun: form.nama_akun,
+      header_akun: form.header_akun || null,
+      tipe_balance: form.tipe_balance,
+      is_active: form.is_active ? 1 : 0,
+    };
+
+    try {
+      if (editingIndex === null) {
+        await axios.post(API_URL, payload);
+      } else {
+        const kode = data[editingIndex].kode_akun;
+        await axios.put(`${API_URL}/${kode}`, payload);
+      }
+      fetchCOA();
+      setOpen(false);
+    } catch (err) {
+      console.error("Save error:", err);
     }
-    setOpen(false);
   }
 
   // DELETE
-  function remove(i) {
+  async function remove(i) {
     if (!confirm("Hapus akun COA ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
+    try {
+      const kode = data[i].kode_akun;
+      await axios.delete(`${API_URL}/${kode}`);
+      fetchCOA();
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
   }
 
-  // CONVERT RAW DATA → JSX untuk TABLE
+  // TABLE ROWS
   const tableRows = data.map((row, index) => ({
     kode_akun: (
-      <SoftTypography variant="caption" color="text">
-        {row.kode_akun}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.kode_akun}</SoftTypography>
     ),
     nama_akun: (
-      <SoftTypography variant="caption" color="text">
-        {row.nama_akun}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.nama_akun}</SoftTypography>
     ),
     header_akun: (
-      <SoftTypography variant="caption" color="text">
-        {row.header_akun}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.header_akun || "-"}</SoftTypography>
     ),
     tipe_balance: (
-      <SoftTypography variant="caption" color="text">
-        {row.tipe_balance}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.tipe_balance}</SoftTypography>
     ),
     is_active: (
       <SoftTypography
         variant="caption"
         color={row.is_active ? "success" : "error"}
-        fontWeight="medium"
       >
         {row.is_active ? "Aktif" : "Tidak Aktif"}
       </SoftTypography>
     ),
     tanggal: (
-      <SoftTypography variant="caption" color="text">
-        {row?.updated_at || row?.created_at || "-"}
+      <SoftTypography variant="caption">
+        {row.tanggal?.slice(0, 19) || "-"}
       </SoftTypography>
     ),
     aksi: (
-      <SoftBox display="flex" alignItems="center" gap={1} justifyContent="center">
+      <SoftBox display="flex" justifyContent="center" gap={1}>
         <IconButton color="info" size="small" onClick={() => openEdit(index)}>
           <EditIcon />
         </IconButton>
@@ -141,30 +175,23 @@ export default function MasterCOA() {
                 p={3}
               >
                 <SoftTypography variant="h6">Master COA</SoftTypography>
+
                 <Button
                   variant="contained"
                   color="success"
                   onClick={openAdd}
-                  sx={{ color: "inherit", minWidth: "150px" }}
+                  sx={{ minWidth: "150px" }}
                 >
-                  <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
-                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
-                    Tambah COA
-                  </SoftTypography>
+                  <Icon sx={{ mr: 1 }}>add</Icon>
+                  Tambah COA
                 </Button>
               </SoftBox>
 
-              <SoftBox
-                sx={{
-                  "& .MuiTableRow-root:not(:last-child)": {
-                    "& td": {
-                      borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                        `${borderWidth[1]} solid ${borderColor}`,
-                    },
-                  },
-                }}
-              >
-                <Table columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]} rows={tableRows} />
+              <SoftBox>
+                <Table
+                  columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]}
+                  rows={tableRows}
+                />
               </SoftBox>
             </Card>
           </Grid>
@@ -192,86 +219,118 @@ export default function MasterCOA() {
             {editingIndex === null ? "Tambah COA" : "Edit COA"}
           </SoftTypography>
 
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Kode Akun
-            </SoftTypography>
+          {/* KODE AKUN */}
+          <Box>
+            <SoftTypography variant="caption">Kode Akun</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
+              disabled={editingIndex !== null}
               value={form.kode_akun}
               onChange={(e) => setForm({ ...form, kode_akun: e.target.value })}
             />
           </Box>
 
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Nama Akun
-            </SoftTypography>
+          {/* NAMA AKUN */}
+          <Box>
+            <SoftTypography variant="caption">Nama Akun</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.nama_akun}
               onChange={(e) => setForm({ ...form, nama_akun: e.target.value })}
             />
           </Box>
 
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Header Akun
-            </SoftTypography>
+          {/* HEADER AKUN */}
+          <Box>
+            <SoftTypography variant="caption">Header Akun</SoftTypography>
             <TextField
               fullWidth
-              variant="outlined"
               value={form.header_akun}
               onChange={(e) => setForm({ ...form, header_akun: e.target.value })}
             />
           </Box>
 
-          <Box display="flex" flexDirection="column" gap={1}>
+          {/* TIPE BALANCE */}
+          <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               Tipe Balance
             </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={form.tipe_balance}
-              onChange={(e) => setForm({ ...form, tipe_balance: e.target.value })}
-            />
+
+            <div
+              style={{
+                position: "relative",
+                marginTop: 6,
+              }}
+            >
+              <select
+                value={form.tipe_balance}
+                onChange={(e) => setForm({ ...form, tipe_balance: e.target.value })}
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%",
+                  height: "45px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" disabled>Pilih Tipe Balance</option>
+                <option value="DEBIT">Debit</option>
+                <option value="KREDIT">Kredit</option>
+              </select>
+
+              <KeyboardArrowDownIcon
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "black",
+                }}
+              />
+            </div>
           </Box>
 
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Status
-            </SoftTypography>
+          {/* STATUS */}
+          <Box>
+            <SoftTypography variant="caption">Status</SoftTypography>
             <Box display="flex" alignItems="center" gap={1}>
               <Switch
-                checked={!!form.is_active}
+                checked={form.is_active}
                 onChange={(e) =>
                   setForm({ ...form, is_active: e.target.checked })
                 }
               />
-              <SoftTypography variant="caption" fontWeight="medium">
-                {form.is_active ? "Aktif" : "Tidak Aktif"}
-              </SoftTypography>
+              {/* <SoftTypography>{form.is_active ? "Aktif" : "Tidak Aktif"}</SoftTypography> */}
+              <SoftTypography variant="caption">{form.is_active ? "Aktif" : "Tidak Aktif"}</SoftTypography>
             </Box>
           </Box>
 
           <Box mt={3} textAlign="right">
-            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpen(false)}>
+            <Button onClick={() => setOpen(false)} sx={{ mr: 2 }}>
               Batal
             </Button>
-            <Button
-              variant="contained"
-              color="info"
-              sx={{ color: "#0000FF !important" }}
-              onClick={save}
-            >
+
+            <Button variant="contained" color="info" onClick={save}>
               Simpan
             </Button>
           </Box>
         </Box>
       </Modal>
+
       <Footer />
     </DashboardLayout>
   );
