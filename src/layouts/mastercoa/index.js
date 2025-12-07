@@ -145,7 +145,7 @@ export default function MasterCOA() {
     ),
     tanggal: (
       <SoftTypography variant="caption">
-        {row.tanggal?.slice(0, 19) || "-"}
+        {row.tanggal ? new Date(row.tanggal).toISOString().split("T")[0] : "-"}
       </SoftTypography>
     ),
     aksi: (
@@ -182,8 +182,10 @@ export default function MasterCOA() {
                   onClick={openAdd}
                   sx={{ minWidth: "150px" }}
                 >
-                  <Icon sx={{ mr: 1 }}>add</Icon>
-                  Tambah COA
+                  <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
+                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                    Tambah COA
+                  </SoftTypography>
                 </Button>
               </SoftBox>
 
@@ -320,11 +322,19 @@ export default function MasterCOA() {
           </Box>
 
           <Box mt={3} textAlign="right">
-            <Button onClick={() => setOpen(false)} sx={{ mr: 2 }}>
+            <Button
+              sx={{ color: "#FF0000 !important", mr: 2 }}
+              onClick={() => setOpen(false)}
+            >
               Batal
             </Button>
 
-            <Button variant="contained" color="info" onClick={save}>
+            <Button
+              variant="contained"
+              color="info"
+              sx={{ color: "#0000FF !important" }}
+              onClick={save}
+            >
               Simpan
             </Button>
           </Box>

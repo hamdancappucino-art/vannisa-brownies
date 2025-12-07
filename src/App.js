@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-
+import ProtectedRoute from "./ProtectedRoute";
 // @mui material components
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -17,7 +17,7 @@ import Configurator from "examples/Configurator";
 import theme from "assets/theme";
 
 // Vannisa Brownies routes
-import routes from "routes";
+import { useFilteredRoutes } from "routes";
 
 // Vannisa Brownies contexts
 import { useSoftUIController, setMiniSidenav, setOpenConfigurator } from "context";
@@ -26,6 +26,7 @@ import { useSoftUIController, setMiniSidenav, setOpenConfigurator } from "contex
 import brand from "assets/images/logo-ct.png";
 
 export default function App() {
+  const routes = useFilteredRoutes();
   const [controller, dispatch] = useSoftUIController();
   const { miniSidenav, layout, openConfigurator, sidenavColor } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
@@ -60,7 +61,21 @@ export default function App() {
   const getRoutes = (allRoutes) =>
     allRoutes.map((route) => {
       if (route.collapse) return getRoutes(route.collapse);
-      if (route.route) return <Route exact path={route.route} element={route.component} key={route.key} />;
+      if (route.route)
+        return (
+          <Route
+            exact
+            path={route.route}
+            element={
+              route.protected ? (
+                <ProtectedRoute>{route.component}</ProtectedRoute>
+              ) : (
+                route.component
+              )
+            }
+            key={route.key}
+          />
+        );;
       return null;
     });
 

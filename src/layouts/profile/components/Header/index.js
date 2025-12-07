@@ -14,6 +14,7 @@ Coded by www.creative-tim.com
 */
 
 import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 
 // @mui material components
 import Card from "@mui/material/Card";
@@ -42,7 +43,12 @@ import breakpoints from "assets/theme/base/breakpoints";
 import burceMars from "assets/images/bruce-mars.jpg";
 import curved0 from "assets/images/curved-images/curved0.jpg";
 
-function Header() {
+Header.propTypes = {
+  nama: PropTypes.string,
+  role: PropTypes.string,
+};
+
+function Header({ nama, role }) {
   const [tabsOrientation, setTabsOrientation] = useState("horizontal");
   const [tabValue, setTabValue] = useState(0);
 
@@ -113,10 +119,10 @@ function Header() {
           <Grid item>
             <SoftBox height="100%" mt={0.5} lineHeight={1}>
               <SoftTypography variant="h5" fontWeight="medium">
-                Hamdan Hamidi
+                {nama || "-"}
               </SoftTypography>
               <SoftTypography variant="button" color="text" fontWeight="medium">
-                Owner
+                {role || "-"}
               </SoftTypography>
             </SoftBox>
           </Grid>

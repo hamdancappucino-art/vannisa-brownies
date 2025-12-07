@@ -1,19 +1,6 @@
-/**
-=========================================================
-* Vannisa Brownies - v4.0.1
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/soft-ui-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 // react-router-dom components
 import { Link } from "react-router-dom";
@@ -34,9 +21,44 @@ import CoverLayout from "layouts/authentication/components/CoverLayout";
 import curved9 from "assets/images/curved-images/curved-6.jpg";
 
 function SignIn() {
+  const navigate = useNavigate();
+
   const [rememberMe, setRememberMe] = useState(true);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
+
+  const handleLogin = async () => {
+    try {
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        username,
+        password,
+      });
+
+      const { token, user } = res.data;
+
+      // Save token
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // SET DEFAULT AXIOS HEADER
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      navigate("/dashboard");
+    } catch (err) {
+      alert(err.response?.data?.message || "Login gagal");
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+
+    if (token && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, []);
 
   return (
     <CoverLayout
@@ -44,23 +66,35 @@ function SignIn() {
       description="Enter your Username and password to sign in"
       image={curved9}
     >
-      <SoftBox component="form" role="form">
+      <SoftBox component="form" role="form" onSubmit={(e) => e.preventDefault()}>
         <SoftBox mb={2}>
           <SoftBox mb={1} ml={0.5}>
             <SoftTypography component="label" variant="caption" fontWeight="bold">
               Username
             </SoftTypography>
           </SoftBox>
-          <SoftInput type="username" placeholder="Username" />
+          <SoftInput
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </SoftBox>
+
         <SoftBox mb={2}>
           <SoftBox mb={1} ml={0.5}>
             <SoftTypography component="label" variant="caption" fontWeight="bold">
               Password
             </SoftTypography>
           </SoftBox>
-          <SoftInput type="password" placeholder="Password" />
+          <SoftInput
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </SoftBox>
+
         <SoftBox display="flex" alignItems="center">
           <Switch checked={rememberMe} onChange={handleSetRememberMe} />
           <SoftTypography
@@ -72,26 +106,17 @@ function SignIn() {
             &nbsp;&nbsp;Remember me
           </SoftTypography>
         </SoftBox>
+
         <SoftBox mt={4} mb={1}>
-          <SoftButton variant="gradient" color="info" fullWidth>
+          <SoftButton
+            variant="gradient"
+            color="info"
+            fullWidth
+            onClick={handleLogin}
+          >
             sign in
           </SoftButton>
         </SoftBox>
-        {/* <SoftBox mt={3} textAlign="center">
-          <SoftTypography variant="button" color="text" fontWeight="regular">
-            Don&apos;t have an account?{" "}
-            <SoftTypography
-              component={Link}
-              to="/authentication/sign-up"
-              variant="button"
-              color="info"
-              fontWeight="medium"
-              textGradient
-            >
-              Sign up
-            </SoftTypography>
-          </SoftTypography>
-        </SoftBox> */}
       </SoftBox>
     </CoverLayout>
   );

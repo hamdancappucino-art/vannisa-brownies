@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+
 import {
   Card,
   Box,
@@ -18,18 +21,21 @@ import SoftBox from "components/SoftBox";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "examples/Tables/Table";
-
-import pelangganData from "./data/pelanggan";
 import Footer from "examples/Footer";
 
 function MasterPelanggan() {
-  const { columns, rows: initialRows } = pelangganData;
-  const [rows, setRows] = useState(initialRows);
+  const [rows, setRows] = useState([]);
 
-  // Modal control
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
 
-  // Form state
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
+
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = rows.slice(indexOfFirstRow, indexOfLastRow);
+
   const [formData, setFormData] = useState({
     nama: "",
     alamat: "",
@@ -37,64 +43,81 @@ function MasterPelanggan() {
     email: "",
   });
 
-  const [editIndex, setEditIndex] = useState(null);
+  const columns = [
+    { name: "id_pelanggan", label: "No", align: "center" },
+    { name: "nama", label: "Nama Pelanggan", align: "center" },
+    { name: "alamat", label: "Alamat", align: "center" },
+    { name: "no_telp", label: "No. Telp", align: "center" },
+    { name: "email", label: "Email", align: "center" },
+    { name: "tanggal", label: "Tanggal", align: "center" },
+    { name: "aksi", label: "Aksi", align: "center" },
+  ];
 
-  // Tambah kolom aksi ke table
-  const modifiedColumns = [...columns, { name: "aksi", label: "Aksi", align: "center" }];
-
-  // Open Add Modal
-  const openAdd = () => {
-    setFormData({ nama: "", alamat: "", no_telp: "", email: "" });
-    setEditIndex(null);
-    setOpen(true);
-  };
-
-  // Open Edit Modal
-  const openEdit = (index) => {
-    setEditIndex(index);
-    setFormData({ ...rows[index] }); // FIX: copy object, bukan reference
-    setOpen(true);
-  };
-
-  // Delete Row
-  const remove = (index) => {
-    const confirmDelete = window.confirm("Yakin ingin menghapus data ini?");
-    if (confirmDelete) {
-      setRows(rows.filter((_, i) => i !== index));
+  const fetchData = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/pelanggan");
+      setRows(res.data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
     }
   };
 
-  // Save Data
-  const save = () => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const openAdd = () => {
+    setEditId(null);
+    setFormData({ nama: "", alamat: "", no_telp: "", email: "" });
+    setOpen(true);
+  };
+
+  const openEdit = (row) => {
+    setEditId(row.id_pelanggan);
+    setFormData({
+      nama: row.nama,
+      alamat: row.alamat,
+      no_telp: row.no_telp,
+      email: row.email,
+    });
+    setOpen(true);
+  };
+
+  const remove = async (id) => {
+    const conf = window.confirm("Yakin ingin menghapus?");
+    if (!conf) return;
+
+    try {
+      await axios.delete(`http://localhost:5000/api/pelanggan/${id}`);
+      fetchData();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  const save = async () => {
     if (!formData.nama || !formData.alamat || !formData.no_telp) {
       alert("Semua field wajib diisi!");
       return;
     }
 
-    if (editIndex !== null) {
-      const updated = [...rows];
-      updated[editIndex] = {
-        ...formData,
-        updated_at: new Date().toISOString().split("T")[0], // AUTO SET updated_at
-      };
-      setRows(updated);
-    } else {
-      setRows([
-        ...rows,
-        {
-          id_pelanggan: rows.length + 1,
-          created_at: new Date().toISOString().split("T")[0],
-          updated_at: null,
-          ...formData,
-        },
-      ]);
+    try {
+      if (editId) {
+        await axios.put(
+          `http://localhost:5000/api/pelanggan/${editId}`,
+          formData
+        );
+      } else {
+        await axios.post("http://localhost:5000/api/pelanggan", formData);
+      }
+      setOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error("Save failed:", err);
     }
-
-    setOpen(false);
   };
 
-  // Generate table rows
-  const tableRows = rows.map((row, index) => ({
+  const tableRows = currentRows.map((row) => ({
     id_pelanggan: (
       <SoftTypography variant="caption" color="text">
         {row.id_pelanggan}
@@ -122,15 +145,30 @@ function MasterPelanggan() {
     ),
     tanggal: (
       <SoftTypography variant="caption" color="text">
-        {row.updated_at || row.created_at}
+        {row.updated_at
+          ? new Date(row.updated_at).toISOString().split("T")[0]
+          : row.created_at
+            ? new Date(row.created_at).toISOString().split("T")[0]
+            : "-"}
       </SoftTypography>
     ),
+
     aksi: (
-      <SoftBox display="flex" alignItems="center" gap={1} justifyContent="center">
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
+      <SoftBox
+        display="flex"
+        alignItems="center"
+        gap={1}
+        justifyContent="center"
+      >
+        <IconButton color="info" size="small" onClick={() => openEdit(row)}>
           <EditIcon />
         </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
+
+        <IconButton
+          color="error"
+          size="small"
+          onClick={() => remove(row.id_pelanggan)}
+        >
           <DeleteIcon />
         </IconButton>
       </SoftBox>
@@ -160,22 +198,49 @@ function MasterPelanggan() {
                   sx={{ color: "inherit", minWidth: "150px" }}
                 >
                   <Icon sx={{ mr: 1, color: "black !important" }}>add</Icon>
-                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                  <SoftTypography
+                    fontSize="13px"
+                    fontWeight="medium"
+                    color="black"
+                  >
                     Tambah Pelanggan
                   </SoftTypography>
                 </Button>
               </SoftBox>
 
-              <SoftBox sx={{
-                "& .MuiTableRow-root:not(:last-child)": {
-                  "& td": {
-                    borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                      `${borderWidth[1]} solid ${borderColor}`,
+              <SoftBox
+                sx={{
+                  "& .MuiTableRow-root:not(:last-child)": {
+                    "& td": {
+                      borderBottom: ({
+                        borders: { borderWidth, borderColor },
+                      }) => `${borderWidth[1]} solid ${borderColor}`,
+                    },
                   },
-                },
-              }}
+                }}
               >
-                <Table columns={modifiedColumns} rows={tableRows} />
+                <Table columns={columns} rows={tableRows} />
+                <SoftBox display="flex" justifyContent="center" alignItems="center" p={2} gap={2}>
+                  <Button variant="outlined" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {Math.ceil(rows.length / rowsPerPage)}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === Math.ceil(rows.length / rowsPerPage)}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>
@@ -186,7 +251,11 @@ function MasterPelanggan() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
       >
         <Box
           sx={{
@@ -200,64 +269,38 @@ function MasterPelanggan() {
           }}
         >
           <SoftTypography variant="h6">
-            {editIndex !== null ? "Edit Pelanggan" : "Tambah Pelanggan"}
+            {editId ? "Edit Pelanggan" : "Tambah Pelanggan"}
           </SoftTypography>
 
-          {/* Nama */}
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Nama Pelanggan
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={formData.nama}
-              onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-            />
-          </Box>
-
-          {/* Alamat */}
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Alamat
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={formData.alamat}
-              onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-            />
-          </Box>
-
-          {/* No Telp */}
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Nomor Telepon
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={formData.no_telp}
-              onChange={(e) => setFormData({ ...formData, no_telp: e.target.value })}
-            />
-          </Box>
-
-          {/* Email */}
-          <Box display="flex" flexDirection="column" gap={1}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              Email
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-          </Box>
+          {/* Input Fields */}
+          {["nama", "alamat", "no_telp", "email"].map((field) => (
+            <Box key={field} display="flex" flexDirection="column" gap={1}>
+              <SoftTypography variant="caption" fontWeight="medium">
+                {field === "nama"
+                  ? "Nama Pelanggan"
+                  : field === "alamat"
+                    ? "Alamat"
+                    : field === "no_telp"
+                      ? "Nomor Telepon"
+                      : "Email"}
+              </SoftTypography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                value={formData[field]}
+                onChange={(e) =>
+                  setFormData({ ...formData, [field]: e.target.value })
+                }
+              />
+            </Box>
+          ))}
 
           {/* Buttons */}
           <Box mt={3} textAlign="right">
-            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpen(false)}>
+            <Button
+              sx={{ color: "#FF0000 !important", mr: 2 }}
+              onClick={() => setOpen(false)}
+            >
               Batal
             </Button>
 

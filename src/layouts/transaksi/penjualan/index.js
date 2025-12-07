@@ -150,10 +150,14 @@ function TransaksiInput() {
                   {/* Buttons */}
                   <Grid item xs={12}>
                     <SoftBox display="flex" justifyContent="flex-end" gap={2}>
-                      <Button variant="outlined" color="secondary">
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        sx={{ color: "error.main" }}
+                      >
                         Batal
                       </Button>
-                      <Button variant="contained" color="primary">
+                      <Button variant="contained" color="primary" sx={{ color: "white.main" }}>
                         Simpan
                       </Button>
                     </SoftBox>

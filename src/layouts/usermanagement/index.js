@@ -19,6 +19,7 @@ import Footer from "examples/Footer";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "examples/Tables/Table";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 const API_URL = "http://localhost:5000/api/users";
 
@@ -37,12 +38,12 @@ const columns = [
 function UserManagement() {
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(5);
+  const [rowsPerPage] = useState(10);
   const [open, setOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [visiblePassword, setVisiblePassword] = useState({});
-  const [submitted, setSubmitted] = useState(false); // state baru untuk validasi
+  const [submitted, setSubmitted] = useState(false);
 
   const [form, setForm] = useState({
     id: "",
@@ -59,7 +60,6 @@ function UserManagement() {
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
   const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
 
-  // =================== FETCH USERS ===================
   const fetchUsers = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -74,16 +74,32 @@ function UserManagement() {
     fetchUsers();
   }, []);
 
-  // =================== VALIDASI FIELD ===================
+  const validatePassword = (password) => {
+    if (!password || password.trim() === "") return "Field ini wajib diisi";
+
+    if (password.length < 8) return "Password minimal 8 karakter";
+    if (password.length > 12) return "Password maksimal 12 karakter";
+
+    if (!/[A-Z]/.test(password)) return "Harus mengandung 1 huruf kapital (A-Z)";
+    if (!/[0-9]/.test(password)) return "Harus mengandung angka (0-9)";
+    if (!/[^A-Za-z0-9]/.test(password)) return "Harus mengandung simbol";
+
+    return "";
+  };
+
   const getFieldError = (fieldName) => {
     if (!submitted) return "";
+
+    if (fieldName === "password") {
+      return validatePassword(form.password);
+    }
+
     if (!form[fieldName] || form[fieldName].toString().trim() === "") {
       return "Field ini wajib diisi";
     }
     return "";
   };
 
-  // =================== OPEN ADD ===================
   const openAdd = () => {
     setForm({
       id: "",
@@ -100,7 +116,6 @@ function UserManagement() {
     setOpen(true);
   };
 
-  // =================== OPEN EDIT ===================
   const openEdit = (globalIndex) => {
     let userData = { ...data[globalIndex] };
     if (!userData.no_telp.startsWith("08")) userData.no_telp = "08" + userData.no_telp;
@@ -110,15 +125,19 @@ function UserManagement() {
     setOpen(true);
   };
 
-  // =================== SAVE (ADD / EDIT) ===================
   const save = async () => {
     setSubmitted(true);
 
-    // cek semua field wajib
-    const emptyField = Object.keys(form).find(
-      (key) => key !== "is_active" && (!form[key] || form[key].toString().trim() === "")
+    const requiredFields = ["username", "password", "nama_lengkap", "email", "no_telp", "role"];
+
+    const emptyField = requiredFields.find(
+      (key) => !form[key] || form[key].toString().trim() === ""
     );
-    if (emptyField) return; // jika ada kosong, jangan lanjut
+
+    if (emptyField) return;
+
+    const pwdError = validatePassword(form.password);
+    if (pwdError) return;
 
     try {
       if (editIndex !== null) {
@@ -134,7 +153,6 @@ function UserManagement() {
     }
   };
 
-  // =================== DELETE ===================
   const remove = async (globalIndex) => {
     try {
       const id = data[globalIndex].id;
@@ -145,7 +163,6 @@ function UserManagement() {
     }
   };
 
-  // =================== TABLE ROWS ===================
   const tableRows = currentRows.map((row, index) => {
     const globalIndex = index + indexOfFirstRow;
     const displayRole = row.role.replace(/_/g, " ");
@@ -265,28 +282,101 @@ function UserManagement() {
             { label: "Nama Lengkap", key: "nama_lengkap", type: "text" },
             { label: "Email", key: "email", type: "text" },
             { label: "No Telp", key: "no_telp", type: "text" },
-            { label: "Role", key: "role", type: "text" },
           ].map((field) => (
-            <Box key={field.key} display="flex" flexDirection="column" gap={1} position="relative">
+            <Box key={field.key} display="flex" flexDirection="column" gap={1}>
               <SoftTypography variant="caption">{field.label}</SoftTypography>
+
               <TextField
                 fullWidth
-                type={field.key === "password" ? field.type : "text"}
+                type={field.type}
                 value={form[field.key]}
                 onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                 error={!!getFieldError(field.key)}
                 helperText={getFieldError(field.key)}
+                InputProps={{
+                  sx: {
+                    "& .MuiInputBase-input": {
+                      paddingRight: "40px !important",
+                    },
+                    position: "relative",
+                  },
+                  endAdornment:
+                    field.key === "password" ? (
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        sx={{
+                          position: "absolute",
+                          right: 8,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                        }}
+                      >
+                        <Icon sx={{ fontSize: "18px !important" }}>{showPassword ? "visibility_off" : "visibility"}</Icon>
+                      </IconButton>
+                    ) : null,
+                }}
               />
-              {field.key === "password" && (
-                <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
-                  sx={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", padding: "2px", minWidth: 0, minHeight: 0 }}
-                >
-                  <Icon sx={{ fontSize: "18px !important" }}>{showPassword ? "visibility_off" : "visibility"}</Icon>
-                </IconButton>
-              )}
             </Box>
           ))}
+          <Box mb={2}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Role
+            </SoftTypography>
+
+            <div
+              style={{
+                position: "relative",
+                marginTop: 6,
+              }}
+            >
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%",
+                  height: "45px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" disabled>Pilih role</option>
+                <option value="admin">Admin</option>
+                <option value="staff_keuangan">Staff Keuangan</option>
+                <option value="kasir">Kasir</option>
+              </select>
+
+              <KeyboardArrowDownIcon
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "black",
+                }}
+              />
+            </div>
+
+            {/* ERROR ROLE */}
+            {submitted && !form.role && (
+              <SoftTypography variant="caption" color="error">
+                Field ini wajib diisi
+              </SoftTypography>
+            )}
+          </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption">Status</SoftTypography>

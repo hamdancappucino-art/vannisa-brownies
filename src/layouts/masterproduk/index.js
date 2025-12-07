@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import axios from "axios";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import { Card, Box, Button, Modal, FormControl, Select, TextField, IconButton, MenuItem, InputLabel } from "@mui/material";
+import { Card, Box, Button, Modal, TextField, IconButton } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import Icon from "@mui/material/Icon";
 import SoftTypography from "components/SoftTypography";
@@ -14,16 +15,23 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 import produkTableData from "./data/produk";
 
+const API_URL = "http://localhost:5000/api/produk";
+
 export default function MasterProduk() {
-  const { columns, rows: rawRows } = produkTableData || { columns: [], rows: [] };
+  const { columns } = produkTableData || { columns: [] };
 
-  const [data, setData] = useState(Array.isArray(rawRows) ? rawRows : []);
-
+  const [data, setData] = useState([]);
   const [open, setOpen] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
-
+  const [editingItem, setEditingItem] = useState(null);
   const [detailProduk, setDetailProduk] = useState(null);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
+
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
+
 
   const [form, setForm] = useState({
     id_produk: "",
@@ -36,162 +44,138 @@ export default function MasterProduk() {
     updated_at: "",
   });
 
-  function generateIDProduk(currentData) {
-    if (!Array.isArray(currentData) || currentData.length === 0) return "PRD-001";
+  const formatDate = (date) =>
+    date ? new Date(date).toISOString().split("T")[0] : "";
 
-    const reversed = [...currentData].reverse();
-    let foundNum = null;
-    for (const item of reversed) {
-      if (!item || !item.id_produk) continue;
-      const parts = String(item.id_produk).split("-");
-      const maybeNum = parts[parts.length - 1];
-      const parsed = parseInt(maybeNum, 10);
-      if (!Number.isNaN(parsed)) {
-        foundNum = parsed;
-        break;
-      }
+  function formatKategori(kat) {
+    if (!kat) return "";
+    return kat
+      .split("_")
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  const fetchProduk = async () => {
+    try {
+      const res = await axios.get(API_URL);
+
+      const sortedData = res.data.sort((a, b) => a.id_produk - b.id_produk);
+
+      setData(sortedData);
+    } catch (err) {
+      console.error("Gagal fetch produk:", err);
     }
+  };
 
-    const next = (foundNum === null) ? 1 : foundNum + 1;
+  useEffect(() => {
+    fetchProduk();
+  }, []);
+
+  function generateIDProduk(arr) {
+    if (!arr || arr.length === 0) return "PRD-001";
+
+    const lastId = arr[arr.length - 1].id_produk;
+    const next = Number(lastId) + 1;
+
     return `PRD-${String(next).padStart(3, "0")}`;
   }
 
-  function getDetail(id) {
-    return data.find((p) => p.id_produk === id);
-  }
-
-  function updateStok(id, nilaiBaru) {
-    setData((prev) =>
-      prev.map((p) => (p && p.id_produk === id ? { ...p, stok: nilaiBaru } : p))
-    );
-  }
-
   function openAdd() {
-    setEditingIndex(null);
-
-    const newId = generateIDProduk(data);
+    setEditingItem(null);
 
     setForm({
-      id_produk: newId,
+      id_produk: generateIDProduk(data),
       nama_produk: "",
       kategori: "",
       harga_jual: "",
       stok: "",
       satuan: "",
-      created_at: new Date().toISOString().split("T")[0],
+      created_at: formatDate(new Date()),
       updated_at: "",
     });
 
     setOpen(true);
   }
 
-  function openEdit(i) {
-    setEditingIndex(i);
-    const row = data[i] || {};
-    setForm({ ...row });
+  function openEdit(item) {
+    setEditingItem(item);
+    setForm({
+      ...item,
+      id_produk: `PRD-${String(item.id_produk).padStart(3, "0")}`,
+      created_at: formatDate(item.created_at),
+      updated_at: formatDate(item.updated_at),
+    });
     setOpen(true);
   }
 
-  function openDetailPopup(row) {
-    setDetailProduk(row);
+  function openDetailPopup(item) {
+    setDetailProduk({
+      ...item,
+      created_at: formatDate(item.created_at),
+      updated_at: formatDate(item.updated_at),
+      id_produk: `PRD-${String(item.id_produk).padStart(3, "0")}`,
+    });
     setOpenDetail(true);
   }
 
-  function save() {
-    if (!form.nama_produk || String(form.nama_produk).trim() === "") {
-      alert("Nama produk harus diisi.");
+  async function save() {
+    if (!form.nama_produk) {
+      alert("Nama produk wajib diisi");
       return;
     }
 
-    if (editingIndex === null) {
-      const exists = data.some((d) => d.id_produk === form.id_produk);
-      const finalForm = {
-        ...form,
-        created_at: form.created_at || new Date().toISOString().split("T")[0],
-        updated_at: "",
-      };
+    try {
+      if (editingItem === null) {
+        const payload = { ...form };
+        delete payload.id_produk;
 
-      if (exists) {
-        let attempt = 0;
-        let newId = form.id_produk;
-        while (data.some((d) => d.id_produk === newId) && attempt < 1000) {
-          newId = generateIDProduk(data);
-          attempt++;
-        }
-        finalForm.id_produk = newId;
+        await axios.post(API_URL, payload);
+      } else {
+        await axios.put(`${API_URL}/${editingItem.id_produk}`, form);
       }
 
-      setData((prev) => [...prev, finalForm]);
-    } else {
-      const updatedForm = {
-        ...form,
-        updated_at: new Date().toISOString().split("T")[0],
-      };
-
-      const original = data[editingIndex] || {};
-      if (String(original.stok) !== String(updatedForm.stok)) {
-        updateStok(updatedForm.id_produk, updatedForm.stok);
-      }
-
-      setData((prev) =>
-        prev.map((r, idx) => (idx === editingIndex ? updatedForm : r))
-      );
+      fetchProduk();
+      setOpen(false);
+    } catch (err) {
+      console.error("Gagal menyimpan produk:", err);
+      alert("Error saat menyimpan data");
     }
-    setOpen(false);
   }
 
-  function remove(i) {
+  async function remove(item) {
     if (!window.confirm("Hapus produk ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
+
+    try {
+      await axios.delete(`${API_URL}/${item.id_produk}`);
+      fetchProduk();
+    } catch (err) {
+      console.error("Gagal hapus produk:", err);
+    }
   }
 
-  const tableRows = data.map((row, index) => ({
+  const tableRows = currentRows.map((row) => ({
     id_produk: (
       <SoftTypography
         variant="caption"
         color="text"
-        onClick={() => openDetailPopup(row)}
         style={{ cursor: "pointer" }}
+        onClick={() => openDetailPopup(row)}
       >
-        {row?.id_produk ?? "-"}
+        {`PRD-${String(row.id_produk).padStart(3, "0")}`}
       </SoftTypography>
     ),
-    nama_produk: (
-      <SoftTypography variant="caption" color="text">
-        {row?.nama_produk ?? "-"}
-      </SoftTypography>
-    ),
-    kategori: (
-      <SoftTypography variant="caption" color="text">
-        {row?.kategori ?? "-"}
-      </SoftTypography>
-    ),
-    harga_jual: (
-      <SoftTypography variant="caption" color="text">
-        {row?.harga_jual ?? "-"}
-      </SoftTypography>
-    ),
-    stok: (
-      <SoftTypography variant="caption" color="text">
-        {row?.stok ?? "-"}
-      </SoftTypography>
-    ),
-    satuan: (
-      <SoftTypography variant="caption" color="text">
-        {row?.satuan ?? "-"}
-      </SoftTypography>
-    ),
-    tanggal: (
-      <SoftTypography variant="caption" color="text">
-        {row?.updated_at || row?.created_at || "-"}
-      </SoftTypography>
-    ),
+    nama_produk: row.nama_produk,
+    kategori: formatKategori(row.kategori),
+    harga_jual: row.harga_jual,
+    stok: row.stok,
+    satuan: row.satuan,
+    tanggal: formatDate(row.updated_at || row.created_at),
     aksi: (
       <SoftBox display="flex" alignItems="center" justifyContent="center" gap={1}>
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
+        <IconButton color="info" size="small" onClick={() => openEdit(row)}>
           <EditIcon />
         </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
+        <IconButton color="error" size="small" onClick={() => remove(row)}>
           <DeleteIcon />
         </IconButton>
       </SoftBox>
@@ -240,12 +224,34 @@ export default function MasterProduk() {
                   columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]}
                   rows={tableRows}
                 />
+                <SoftBox display="flex" justifyContent="center" alignItems="center" p={2} gap={2}>
+                  <Button variant="outlined" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {Math.ceil(data.length / rowsPerPage)}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === Math.ceil(data.length / rowsPerPage)}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>
         </Grid>
       </SoftBox>
 
+      {/* MODAL DETAIL */}
       <Modal open={openDetail} onClose={() => setOpenDetail(false)}>
         <Box
           sx={{
@@ -262,22 +268,19 @@ export default function MasterProduk() {
           </SoftTypography>
 
           {detailProduk ? (
-            <>
-              {Object.entries(detailProduk).map(([key, val]) => (
-                <Box key={key} mb={1}>
-                  <SoftTypography fontWeight="medium">
-                    {key.toUpperCase()}
-                  </SoftTypography>
-                  <SoftTypography color="text">{String(val ?? "-")}</SoftTypography>
-                </Box>
-              ))}
-            </>
+            Object.entries(detailProduk).map(([key, value]) => (
+              <Box key={key} mb={1}>
+                <SoftTypography fontWeight="medium">{key.toUpperCase()}</SoftTypography>
+                <SoftTypography color="text">{value}</SoftTypography>
+              </Box>
+            ))
           ) : (
-            <SoftTypography color="text">Tidak ada data</SoftTypography>
+            <SoftTypography>Tidak ada data</SoftTypography>
           )}
         </Box>
       </Modal>
 
+      {/* MODAL FORM */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box
           sx={{
@@ -290,43 +293,36 @@ export default function MasterProduk() {
           }}
         >
           <SoftTypography variant="h6" mb={2}>
-            {editingIndex === null ? "Tambah Produk" : "Edit Produk"}
+            {editingItem ? "Edit Produk" : "Tambah Produk"}
           </SoftTypography>
 
+          {/* ID PRODUK */}
           <Box mb={2}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              ID PRODUK
-            </SoftTypography>
-            <TextField
-              fullWidth
-              value={form.id_produk}
-              InputProps={{ readOnly: true }}
-            />
+            <SoftTypography variant="caption" fontWeight="medium">ID Produk</SoftTypography>
+            <TextField fullWidth value={form.id_produk} InputProps={{ readOnly: true }} />
           </Box>
 
-          <Box mb={2}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              NAMA PRODUK
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={form.nama_produk}
-              onChange={(e) => setForm({ ...form, nama_produk: e.target.value })}
-            />
-          </Box>
+          {/* INPUT LAIN */}
+          {[
+            ["nama_produk", "Nama Produk"],
+            ["harga_jual", "Harga Jual"],
+            ["stok", "Stok"],
+          ].map(([key, label]) => (
+            <Box mb={2} key={key}>
+              <SoftTypography variant="caption" fontWeight="medium">{label}</SoftTypography>
+              <TextField
+                fullWidth
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+              />
+            </Box>
+          ))}
 
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
-              KATEGORI
+              Kategori
             </SoftTypography>
-
-            <div
-              style={{
-                position: "relative",
-                marginTop: 6,
-              }}
-            >
+            <div style={{ position: "relative", marginTop: 6, }} >
               <select
                 value={form.kategori}
                 onChange={(e) => setForm({ ...form, kategori: e.target.value })}
@@ -334,14 +330,12 @@ export default function MasterProduk() {
                   e.target.style.border = "1px solid #ccc";
                   e.target.style.outline = "none";
                 }}
-
                 onBlur={(e) => {
                   e.target.style.border = "1px solid #ccc";
                   e.target.style.outline = "none";
                 }}
                 style={{
-                  width: "100%",
-                  height: "45px",
+                  width: "100%", height: "45px",
                   padding: "10px 40px 10px 14px",
                   borderRadius: "6px",
                   border: "1px solid #ccc",
@@ -352,11 +346,14 @@ export default function MasterProduk() {
                 }}
               >
                 <option value="" disabled>Pilih kategori</option>
-                <option value="Makanan">Makanan</option>
-                <option value="Minuman">Minuman</option>
-                <option value="Kebutuhan Rumah">Kebutuhan Rumah</option>
+                <option value="brownies_kukus">Brownies Kukus</option>
+                <option value="brownies_bakar">Brownies Bakar</option>
+                <option value="creamcheese">CreamCheese</option>
+                <option value="moscovis_cake">Moscovis Cake</option>
+                <option value="bolu">Bolu</option>
+                <option value="bolen">Bolen</option>
+                <option value="snack">Snack</option>
               </select>
-
               <KeyboardArrowDownIcon
                 style={{
                   position: "absolute",
@@ -365,62 +362,14 @@ export default function MasterProduk() {
                   transform: "translateY(-50%)",
                   pointerEvents: "none",
                   color: "black",
-                }}
-              />
+                }} />
             </div>
           </Box>
 
+          {/* SATUAN */}
           <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
-              HARGA JUAL
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={form.harga_jual}
-              onChange={(e) => setForm({ ...form, harga_jual: e.target.value })}
-              InputProps={{
-                inputProps: { inputMode: "numeric", pattern: "[0-9]*" },
-                sx: {
-                  "& input[type=number]": {
-                    MozAppearance: "textfield",
-                  },
-                  "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
-                    WebkitAppearance: "none",
-                    margin: 0,
-                  },
-                },
-              }}
-            />
-          </Box>
-
-          <Box mb={2}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              STOK
-            </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={form.stok}
-              onChange={(e) => setForm({ ...form, stok: e.target.value })}
-              InputProps={{
-                inputProps: { inputMode: "numeric", pattern: "[0-9]*" },
-                sx: {
-                  "& input[type=number]": {
-                    MozAppearance: "textfield",
-                  },
-                  "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
-                    WebkitAppearance: "none",
-                    margin: 0,
-                  },
-                },
-              }}
-            />
-          </Box>
-
-          <Box mb={2}>
-            <SoftTypography variant="caption" fontWeight="medium">
-              SATUAN
+              Satuan
             </SoftTypography>
             <div
               style={{
@@ -431,17 +380,14 @@ export default function MasterProduk() {
               <select
                 value={form.satuan}
                 onChange={(e) => setForm({ ...form, satuan: e.target.value })}
-
                 onFocus={(e) => {
                   e.target.style.border = "1px solid #ccc";
                   e.target.style.outline = "none";
                 }}
-
                 onBlur={(e) => {
                   e.target.style.border = "1px solid #ccc";
                   e.target.style.outline = "none";
                 }}
-
                 style={{
                   width: "100%",
                   height: "45px",
@@ -455,11 +401,9 @@ export default function MasterProduk() {
                 }}
               >
                 <option value="" disabled>Pilih Satuan</option>
-                <option value="pcs">Pcs</option>
                 <option value="box">Box</option>
-                <option value="lusin">Lusin</option>
+                <option value="pack">Pack</option>
               </select>
-
               <KeyboardArrowDownIcon
                 style={{
                   position: "absolute",
@@ -474,15 +418,21 @@ export default function MasterProduk() {
           </Box>
 
           <Box mt={3} textAlign="right">
-            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpen(false)}>
+            <Button sx={{ color: "red", mr: 2 }} onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <Button variant="contained" color="info" onClick={save}>
+            <Button
+              variant="contained"
+              color="info"
+              sx={{ color: "#0000FF !important" }}
+              onClick={save}
+            >
               Simpan
             </Button>
           </Box>
         </Box>
       </Modal>
+
       <Footer />
     </DashboardLayout>
   );

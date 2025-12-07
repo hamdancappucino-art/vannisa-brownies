@@ -1,43 +1,107 @@
-/**
-  All of the routes for the Vanissa Brownies are added here.
-  You can add a new route, customize the routes, and delete the routes here.
-*/
+import { useMemo } from "react";
 
-// Vannisa Brownies layouts
+// Layouts
 import BebanOperasional from "layouts/bebanoperasional";
 import BukuBesar from "layouts/bukubesar";
 import Dashboard from "layouts/dashboard";
-//laporan
+
+// laporan
 import LaporanPenjualan from "layouts/laporan/penjualan";
 import LaporanLabaRugi from "layouts/laporan/laba-rugi";
 
-//jurnal
-import JurnalPenjualan from "layouts/jurnal/penjualan"
+// jurnal
+import JurnalPenjualan from "layouts/jurnal/penjualan";
 import JurnalBeban from "layouts/jurnal/beban";
 import JurnalDP from "layouts/jurnal/dp";
 
-//master
+// master
 import MasterCOA from "layouts/mastercoa";
 import MasterProduk from "layouts/masterproduk";
 import MasterPelanggan from "layouts/masterpelanggan";
 
 import Profile from "layouts/profile";
+import Logout from "layouts/authentication/logout";
 import SignIn from "layouts/authentication/sign-in";
 import TransaksiInput from "layouts/transaksi/penjualan";
 import UserManagement from "layouts/usermanagement";
 import VerifikasiPenjualan from "layouts/transaksi/verifikasi";
 import TransaksiDP from "layouts/transaksi/dp";
-import Office from "examples/Icons/Office";
-import Master from "examples/Icons/Master";
-import CustomerSupport from "examples/Icons/CustomerSupport";
 
-// Vannisa Brownies icons
+// Icons
 import Shop from "examples/Icons/Shop";
 import Document from "examples/Icons/Document";
 import CreditCard from "examples/Icons/CreditCard";
 import Profilee from "examples/Icons/Profile";
+import Master from "examples/Icons/Master";
+import CustomerSupport from "examples/Icons/CustomerSupport";
+import LogoutIcon from "examples/Icons/Logout";
 
-const routes = [
+/* ---------------------------------------------------
+    ROLE HANDLER
+----------------------------------------------------*/
+
+const getRole = () => {
+  try {
+    const u = JSON.parse(localStorage.getItem("user") || "{}");
+    return u.role || null;
+  } catch {
+    return null;
+  }
+};
+
+const accessControl = {
+  kasir: [
+    "dashboard",
+    "transaksi-penjualan",
+    "transaksi-dp",
+    "profile",
+    "logout",
+  ],
+  staff_keuangan: [
+    "dashboard",
+    "transaksi-verifikasi",
+    "beban-operasional",
+    "master-data",
+    "master-coa",
+    "master-produk",
+    "master-pelanggan",
+    "jurnal",
+    "jurnal-penjualan",
+    "jurnal-beban",
+    "jurnal-dp",
+    "laporan",
+    "laporan-penjualan",
+    "laporan-laba-rugi",
+    "buku-besar",
+    "profile",
+    "logout",
+  ],
+  admin: "all",
+  owner: "all",
+};
+
+function isAllowed(key) {
+  const role = getRole();
+
+  if (key === "sign-in") return true;
+  if (key === "logout") return true;
+
+  if (!role) return false;
+
+  const allowed = accessControl[role];
+
+  if (!allowed) return false;
+
+  if (allowed === "all") return true;
+
+  return allowed.includes(key);
+}
+
+/* ---------------------------------------------------
+    RAW ROUTES (LISTA UTAMA)
+----------------------------------------------------*/
+
+const rawRoutes = [
   {
     type: "collapse",
     name: "Dashboard",
@@ -45,9 +109,11 @@ const routes = [
     route: "/dashboard",
     icon: <Shop size="12px" />,
     component: <Dashboard />,
+    protected: true,
     noCollapse: true,
   },
 
+  // MASTER
   {
     type: "collapse",
     name: "Master Data",
@@ -60,7 +126,7 @@ const routes = [
         route: "/master-data/coa",
         icon: <Master size="12px" />,
         component: <MasterCOA />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Master Produk",
@@ -68,7 +134,7 @@ const routes = [
         route: "/master-data/produk",
         icon: <Master size="12px" />,
         component: <MasterProduk />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Master Pelanggan",
@@ -76,11 +142,12 @@ const routes = [
         route: "/master-data/pelanggan",
         icon: <Master size="12px" />,
         component: <MasterPelanggan />,
-        isChild: true
+        protected: true,
       },
     ],
   },
 
+  // TRANSAKSI
   {
     type: "collapse",
     name: "Transaksi",
@@ -93,7 +160,7 @@ const routes = [
         route: "/transaksi/penjualan",
         icon: <CreditCard size="12px" />,
         component: <TransaksiInput />,
-        isChild: true
+        protected: true,
       },
       {
         name: "DP Pembayaran",
@@ -101,7 +168,7 @@ const routes = [
         route: "/transaksi/dp",
         icon: <CreditCard size="12px" />,
         component: <TransaksiDP />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Verifikasi Penjualan",
@@ -109,11 +176,12 @@ const routes = [
         route: "/transaksi/verifikasi",
         icon: <CreditCard size="12px" />,
         component: <VerifikasiPenjualan />,
-        isChild: true
-      }
+        protected: true,
+      },
     ],
   },
 
+  // LAPORAN
   {
     type: "collapse",
     name: "Laporan",
@@ -126,7 +194,7 @@ const routes = [
         route: "/laporan/penjualan",
         icon: <Document size="12px" />,
         component: <LaporanPenjualan />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Laporan Laba Rugi",
@@ -134,7 +202,7 @@ const routes = [
         route: "/laporan/laba-rugi",
         icon: <Document size="12px" />,
         component: <LaporanLabaRugi />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Buku Besar",
@@ -142,11 +210,12 @@ const routes = [
         route: "/laporan/buku-besar",
         icon: <Document size="12px" />,
         component: <BukuBesar />,
-        isChild: true
+        protected: true,
       },
     ],
   },
 
+  // JURNAL
   {
     type: "collapse",
     name: "Jurnal",
@@ -154,13 +223,12 @@ const routes = [
     icon: <Document size="12px" />,
     collapse: [
       {
-        type: "collapse",
         name: "Jurnal Penjualan",
         key: "jurnal-penjualan",
         route: "/jurnal/penjualan",
         icon: <Document size="12px" />,
         component: <JurnalPenjualan />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Jurnal Beban",
@@ -168,7 +236,7 @@ const routes = [
         route: "/jurnal/beban",
         icon: <Document size="12px" />,
         component: <JurnalBeban />,
-        isChild: true
+        protected: true,
       },
       {
         name: "Jurnal DP",
@@ -176,10 +244,11 @@ const routes = [
         route: "/jurnal/dp",
         icon: <Document size="12px" />,
         component: <JurnalDP />,
-        isChild: true
-      }
+        protected: true,
+      },
     ],
   },
+
   {
     type: "collapse",
     name: "Beban Operasional",
@@ -187,6 +256,7 @@ const routes = [
     route: "/beban-operasional",
     icon: <CreditCard size="12px" />,
     component: <BebanOperasional />,
+    protected: true,
     noCollapse: true,
   },
 
@@ -197,6 +267,7 @@ const routes = [
     route: "/user-management",
     icon: <CustomerSupport size="12px" />,
     component: <UserManagement />,
+    protected: true,
     noCollapse: true,
   },
 
@@ -207,9 +278,20 @@ const routes = [
     route: "/profile",
     icon: <Profilee size="12px" />,
     component: <Profile />,
+    protected: true,
+    noCollapse: true,
+  },
+  {
+    type: "collapse",
+    name: "Logout",
+    key: "logout",
+    route: "/logout",
+    icon: <LogoutIcon size="12px" />,
+    component: <Logout />,
     noCollapse: true,
   },
 
+  // ALWAYS ALLOWED
   {
     name: "Sign In",
     key: "sign-in",
@@ -220,4 +302,31 @@ const routes = [
   },
 ];
 
-export default routes;
+/* ---------------------------------------------------
+    FINAL ROUTE FILTER
+----------------------------------------------------*/
+
+export const useFilteredRoutes = () => {
+  return useMemo(() => {
+    return rawRoutes
+      .map((item) => {
+        if (item.key === "sign-in") return item;
+
+        if (!isAllowed(item.key)) {
+          if (item.collapse) {
+            const filteredChildren = item.collapse.filter((child) =>
+              isAllowed(child.key)
+            );
+            if (filteredChildren.length > 0) {
+              return { ...item, collapse: filteredChildren };
+            }
+          }
+          return null;
+        }
+        return item;
+      })
+      .filter(Boolean);
+  }, [localStorage.getItem("user")]);
+};
+
+export const allRoutes = rawRoutes;

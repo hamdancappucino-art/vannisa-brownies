@@ -1,45 +1,113 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-// @mui material components
+// MUI
 import Grid from "@mui/material/Grid";
-import { Card, Icon, IconButton, TextField } from "@mui/material";
+import { Card, Icon, IconButton, TextField, Box, Button, } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 
-// Vannisa Brownies components
+// Components
 import SoftBox from "components/SoftBox";
 import SoftTypography from "components/SoftTypography";
-
-// Vannisa Brownies examples
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import Footer from "examples/Footer";
-
-// Overview page components
 import Header from "layouts/profile/components/Header";
+
+const API_URL = "http://localhost:5000/api/users";
 
 function Overview() {
   const [edit, setEdit] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [originalData, setOriginalData] = useState({});
 
   const [form, setForm] = useState({
-    username: "Boom",
-    password: "boom123",
-    nama: "Boom Boom",
-    email: "boom@example.com",
-    telp: "0897188281712",
-    role: "Admin",
+    username: "",
+    password: "",
+    nama: "",
+    email: "",
+    telp: "",
+    role: "",
   });
+
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem("user") || "{}");
+
+    if (!u.id) {
+      console.error("User ID tidak ditemukan di localStorage");
+      return;
+    }
+
+    axios
+      .get(`${API_URL}/${u.id}`, {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        }
+      })
+      .then((res) => {
+        const user = res.data;
+
+        const data = {
+          username: user.username,
+          password: user.password,
+          nama: user.nama_lengkap,
+          email: user.email,
+          telp: user.no_telp,
+          role: user.role,
+        };
+
+        setForm(data);
+        setOriginalData(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching user:", err);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+
+    try {
+      await axios.put(`${API_URL}/1`, {
+        username: form.username,
+        password: form.password ? form.password : undefined,
+        nama_lengkap: form.nama,
+        email: form.email,
+        no_telp: form.telp,
+        role: form.role,
+        is_active: 1,
+      });
+
+      alert("Profil berhasil diperbarui!");
+
+      setOriginalData(form);
+      setEdit(false);
+    } catch (err) {
+      console.error("Error updating user:", err);
+      alert("Gagal memperbarui data.");
+    }
+
+    setLoading(false);
+  };
+
+  const handleCancel = () => {
+    setForm(originalData);
+    setEdit(false);
+  };
+
+
 
   const handleChange = (key, val) => {
     setForm({ ...form, [key]: val });
   };
 
-  const [showPassword, setShowPassword] = useState(false);
-
   return (
     <DashboardLayout>
-      <Header />
+      <Header nama={form.nama} role={form.role} />
+
       <SoftBox mt={5} mb={3}>
         <Grid container spacing={0}>
-          <Grid item xs={12} md={0} xl={0}>
+          <Grid item xs={12}>
             <Card sx={{ p: 3, borderRadius: "12px" }}>
               {/* Header */}
               <SoftBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -69,7 +137,7 @@ function Overview() {
                         value={form.username}
                         disabled={!edit}
                         onChange={(e) => handleChange("username", e.target.value)}
-                        sx={{ mb: 2 }} // <-- tambahkan margin bawah
+                        sx={{ mb: 2 }}
                       />
 
                       {/* PASSWORD */}
@@ -77,14 +145,7 @@ function Overview() {
                         Password
                       </SoftTypography>
 
-                      <SoftBox
-                        sx={{
-                          position: "relative",
-                          display: "flex",
-                          alignItems: "center",
-                          mb: 2,               // <-- tambahkan margin bawah di wrapper
-                        }}
-                      >
+                      <SoftBox sx={{ position: "relative", mb: 2, display: "flex", alignItems: "center" }}>
                         <TextField
                           fullWidth
                           size="medium"
@@ -92,11 +153,8 @@ function Overview() {
                           value={form.password}
                           disabled={!edit}
                           onChange={(e) => handleChange("password", e.target.value)}
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              paddingRight: "40px !important",
-                            },
-                          }}
+                          // placeholder="Isi untuk mengganti password"
+                          sx={{ "& .MuiInputBase-root": { paddingRight: "40px !important" } }}
                         />
 
                         <IconButton
@@ -114,7 +172,7 @@ function Overview() {
                         </IconButton>
                       </SoftBox>
 
-                      {/* NAMA LENGKAP */}
+                      {/* NAMA */}
                       <SoftTypography variant="caption" fontWeight="bold" sx={{ mb: "4px" }}>
                         Nama Lengkap
                       </SoftTypography>
@@ -125,7 +183,6 @@ function Overview() {
                         onChange={(e) => handleChange("nama", e.target.value)}
                         sx={{ mb: 2 }}
                       />
-
                     </SoftBox>
                   </Grid>
 
@@ -136,38 +193,56 @@ function Overview() {
                         Email
                       </SoftTypography>
                       <TextField
-                        sx={{ mb: 2 }}
                         size="medium"
                         value={form.email}
                         disabled={!edit}
                         onChange={(e) => handleChange("email", e.target.value)}
+                        sx={{ mb: 2 }}
                       />
 
                       <SoftTypography variant="caption" fontWeight="bold" sx={{ mb: "4px" }}>
                         No Telp
                       </SoftTypography>
                       <TextField
-                        sx={{ mb: 2 }}
                         size="medium"
                         value={form.telp}
                         disabled={!edit}
                         onChange={(e) => handleChange("telp", e.target.value)}
+                        sx={{ mb: 2 }}
                       />
 
                       <SoftTypography variant="caption" fontWeight="bold" sx={{ mb: "4px" }}>
                         Role
                       </SoftTypography>
                       <TextField
-                        sx={{ mb: 2 }}
                         size="medium"
                         value={form.role}
                         disabled={!edit}
                         onChange={(e) => handleChange("role", e.target.value)}
+                        sx={{ mb: 2 }}
                       />
                     </SoftBox>
                   </Grid>
 
                 </Grid>
+                {edit && (
+                  <Box mt={3} textAlign="right">
+                    <Button
+                      sx={{ color: "#FF0000 !important", mr: 2 }}
+                      onClick={handleCancel}
+                    >
+                      Batal
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="info"
+                      sx={{ color: "#0000FF !important" }}
+                      onClick={handleSave}
+                    >
+                      Simpan
+                    </Button>
+                  </Box>
+                )}
               </SoftBox>
             </Card>
           </Grid>
