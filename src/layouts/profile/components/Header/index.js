@@ -74,6 +74,8 @@ function Header({ nama, role }) {
 
   const handleSetTabValue = (event, newValue) => setTabValue(newValue);
 
+  const displayRole = role ? role.replace(/_/g, " ") : "-";
+
   return (
     <SoftBox position="relative">
       <DashboardNavbar absolute light />
@@ -122,7 +124,7 @@ function Header({ nama, role }) {
                 {nama || "-"}
               </SoftTypography>
               <SoftTypography variant="button" color="text" fontWeight="medium">
-                {role || "-"}
+                {displayRole}
               </SoftTypography>
             </SoftBox>
           </Grid>

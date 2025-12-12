@@ -36,10 +36,6 @@ import Master from "examples/Icons/Master";
 import CustomerSupport from "examples/Icons/CustomerSupport";
 import LogoutIcon from "examples/Icons/Logout";
 
-/* ---------------------------------------------------
-    ROLE HANDLER
-----------------------------------------------------*/
-
 const getRole = () => {
   try {
     const u = JSON.parse(localStorage.getItem("user") || "{}");
@@ -96,10 +92,6 @@ function isAllowed(key) {
 
   return allowed.includes(key);
 }
-
-/* ---------------------------------------------------
-    RAW ROUTES (LISTA UTAMA)
-----------------------------------------------------*/
 
 const rawRoutes = [
   {
@@ -181,38 +173,15 @@ const rawRoutes = [
     ],
   },
 
-  // LAPORAN
   {
     type: "collapse",
-    name: "Laporan",
-    key: "laporan",
-    icon: <Document size="12px" />,
-    collapse: [
-      {
-        name: "Laporan Penjualan",
-        key: "laporan-penjualan",
-        route: "/laporan/penjualan",
-        icon: <Document size="12px" />,
-        component: <LaporanPenjualan />,
-        protected: true,
-      },
-      {
-        name: "Laporan Laba Rugi",
-        key: "laporan-laba-rugi",
-        route: "/laporan/laba-rugi",
-        icon: <Document size="12px" />,
-        component: <LaporanLabaRugi />,
-        protected: true,
-      },
-      {
-        name: "Buku Besar",
-        key: "buku-besar",
-        route: "/laporan/buku-besar",
-        icon: <Document size="12px" />,
-        component: <BukuBesar />,
-        protected: true,
-      },
-    ],
+    name: "Beban Operasional",
+    key: "beban-operasional",
+    route: "/beban-operasional",
+    icon: <CreditCard size="12px" />,
+    component: <BebanOperasional />,
+    protected: true,
+    noCollapse: true,
   },
 
   // JURNAL
@@ -249,15 +218,38 @@ const rawRoutes = [
     ],
   },
 
+  // LAPORAN
   {
     type: "collapse",
-    name: "Beban Operasional",
-    key: "beban-operasional",
-    route: "/beban-operasional",
-    icon: <CreditCard size="12px" />,
-    component: <BebanOperasional />,
-    protected: true,
-    noCollapse: true,
+    name: "Laporan",
+    key: "laporan",
+    icon: <Document size="12px" />,
+    collapse: [
+      {
+        name: "Laporan Penjualan",
+        key: "laporan-penjualan",
+        route: "/laporan/penjualan",
+        icon: <Document size="12px" />,
+        component: <LaporanPenjualan />,
+        protected: true,
+      },
+      {
+        name: "Laporan Laba Rugi",
+        key: "laporan-laba-rugi",
+        route: "/laporan/laba-rugi",
+        icon: <Document size="12px" />,
+        component: <LaporanLabaRugi />,
+        protected: true,
+      },
+      {
+        name: "Buku Besar",
+        key: "buku-besar",
+        route: "/laporan/buku-besar",
+        icon: <Document size="12px" />,
+        component: <BukuBesar />,
+        protected: true,
+      },
+    ],
   },
 
   {
@@ -301,10 +293,6 @@ const rawRoutes = [
     noCollapse: true,
   },
 ];
-
-/* ---------------------------------------------------
-    FINAL ROUTE FILTER
-----------------------------------------------------*/
 
 export const useFilteredRoutes = () => {
   return useMemo(() => {

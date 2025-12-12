@@ -101,6 +101,8 @@ function Overview() {
     setForm({ ...form, [key]: val });
   };
 
+  const displayRole = form.role ? form.role.replace(/_/g, " ") : "";
+
   return (
     <DashboardLayout>
       <Header nama={form.nama} role={form.role} />
@@ -216,9 +218,8 @@ function Overview() {
                       </SoftTypography>
                       <TextField
                         size="medium"
-                        value={form.role}
-                        disabled={!edit}
-                        onChange={(e) => handleChange("role", e.target.value)}
+                        value={displayRole}
+                        disabled
                         sx={{ mb: 2 }}
                       />
                     </SoftBox>

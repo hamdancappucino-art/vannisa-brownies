@@ -7,7 +7,7 @@ const bebanTableData = {
     { name: "tanggal_beban", label: "Tanggal Beban", align: "center" },
     { name: "keterangan", label: "Keterangan", align: "center" },
     { name: "id_user", label: "Id User", align: "center" },
-    { name: "created_at", label: "Dibuat Tanggal", align: "center" },
+    { name: "created_at", label: "Terakhir Diubah", align: "center" },
   ],
 
   rows: [

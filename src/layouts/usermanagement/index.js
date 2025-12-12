@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "api/api";
 import Grid from "@mui/material/Grid";
 import Icon from "@mui/material/Icon";
 import {
@@ -20,8 +20,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "examples/Tables/Table";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-
-const API_URL = "http://localhost:5000/api/users";
 
 const columns = [
   { name: "id", label: "No", align: "center" },
@@ -62,7 +60,7 @@ function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(API_URL);
+      const res = await API.get("/users");
       const sorted = res.data.sort((a, b) => a.id - b.id);
       setData(sorted);
     } catch (err) {
@@ -142,9 +140,9 @@ function UserManagement() {
     try {
       if (editIndex !== null) {
         const id = data[editIndex].id;
-        await axios.put(`${API_URL}/${id}`, form);
+        await API.put(`/users/${id}`, form);
       } else {
-        await axios.post(API_URL, form);
+        await API.post("/users", form);
       }
       fetchUsers();
       setOpen(false);
@@ -156,7 +154,7 @@ function UserManagement() {
   const remove = async (globalIndex) => {
     try {
       const id = data[globalIndex].id;
-      await axios.delete(`${API_URL}/${id}`);
+      await API.delete(`/users/${id}`);
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user:", err);

@@ -1,7 +1,7 @@
 const laporanBebanTableData = {
   columns: [
     { name: "id_jurnal_beban", align: "center", label: "ID Jurnal" },
-    { name: "id_beban", align: "center", label: "ID Penjualan" },
+    { name: "id_beban", align: "center", label: "ID Beban" },
     { name: "tanggal", align: "center", label: "Tanggal" },
     { name: "kode", align: "center", label: "Kode" },
     { name: "nominal", align: "center", label: "Nominal" },

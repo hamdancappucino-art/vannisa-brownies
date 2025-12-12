@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "api/api";
 
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
@@ -55,10 +55,14 @@ function MasterPelanggan() {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/pelanggan");
-      setRows(res.data);
-    } catch (err) {
-      console.error("Error fetching data:", err);
+      const res = await API.get("/pelanggan");
+
+      // DETEKSI otomatis apakah datanya array atau object.data
+      const result = Array.isArray(res.data) ? res.data : res.data.data;
+
+      setRows(result || []);
+    } catch (error) {
+      console.error("Fetch error:", error);
     }
   };
 
@@ -88,10 +92,10 @@ function MasterPelanggan() {
     if (!conf) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/pelanggan/${id}`);
-      fetchData();
-    } catch (err) {
-      console.error("Delete failed:", err);
+      await API.delete(`/pelanggan/${id}`);
+      fetchData(); // 🔥 pakai fetchData, bukan getPelanggan
+    } catch (error) {
+      console.error("Delete error:", error);
     }
   };
 
@@ -103,17 +107,16 @@ function MasterPelanggan() {
 
     try {
       if (editId) {
-        await axios.put(
-          `http://localhost:5000/api/pelanggan/${editId}`,
-          formData
-        );
+        await API.put(`/pelanggan/${editId}`, formData);
       } else {
-        await axios.post("http://localhost:5000/api/pelanggan", formData);
+        await API.post("/pelanggan", formData);
       }
+
       setOpen(false);
-      fetchData();
-    } catch (err) {
-      console.error("Save failed:", err);
+      setFormData({ nama: "", alamat: "", no_telp: "", email: "" });
+      fetchData(); // 🔥 pakai fetchData
+    } catch (error) {
+      console.error("Submit error:", error);
     }
   };
 

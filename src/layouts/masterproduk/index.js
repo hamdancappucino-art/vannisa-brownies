@@ -1,4 +1,4 @@
-import axios from "axios";
+import API from "api/api";
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
@@ -57,11 +57,13 @@ export default function MasterProduk() {
 
   const fetchProduk = async () => {
     try {
-      const res = await axios.get(API_URL);
+      const res = await API.get("/produk");
 
-      const sortedData = res.data.sort((a, b) => a.id_produk - b.id_produk);
+      const sorted = res.data.data
+        ? res.data.data.sort((a, b) => a.id_produk - b.id_produk)
+        : res.data.sort((a, b) => a.id_produk - b.id_produk);
 
-      setData(sortedData);
+      setData(sorted);
     } catch (err) {
       console.error("Gagal fetch produk:", err);
     }
@@ -129,9 +131,9 @@ export default function MasterProduk() {
         const payload = { ...form };
         delete payload.id_produk;
 
-        await axios.post(API_URL, payload);
+        await API.post("/produk", payload);
       } else {
-        await axios.put(`${API_URL}/${editingItem.id_produk}`, form);
+        await API.put(`/produk/${editingItem.id_produk}`, form);
       }
 
       fetchProduk();
@@ -146,7 +148,7 @@ export default function MasterProduk() {
     if (!window.confirm("Hapus produk ini?")) return;
 
     try {
-      await axios.delete(`${API_URL}/${item.id_produk}`);
+      await API.delete(`/produk/${item.id_produk}`);
       fetchProduk();
     } catch (err) {
       console.error("Gagal hapus produk:", err);

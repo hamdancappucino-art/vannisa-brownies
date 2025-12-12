@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import API from "api/api";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import {
@@ -22,8 +22,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "examples/Tables/Table";
 import Footer from "examples/Footer";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-
-const API_URL = "http://localhost:5000/api/coa";
 
 export default function MasterCOA() {
   const columns = [
@@ -51,8 +49,8 @@ export default function MasterCOA() {
   // FETCH DATA
   async function fetchCOA() {
     try {
-      const res = await axios.get(API_URL);
-      setData(res.data); // TAMPILKAN DATA ASLI TANPA DIUBAH
+      const res = await API.get("/coa");
+      setData(res.data);
     } catch (err) {
       console.error("Fetch error:", err);
     }
@@ -80,7 +78,7 @@ export default function MasterCOA() {
     setEditingIndex(i);
     setForm({
       ...data[i],
-      is_active: data[i].is_active === 1, // convert 1/0 → TRUE/FALSE
+      is_active: data[i].is_active === 1,
     });
     setOpen(true);
   }
@@ -97,10 +95,10 @@ export default function MasterCOA() {
 
     try {
       if (editingIndex === null) {
-        await axios.post(API_URL, payload);
+        await API.post("/coa", payload);
       } else {
         const kode = data[editingIndex].kode_akun;
-        await axios.put(`${API_URL}/${kode}`, payload);
+        await API.put(`/coa/${kode}`, payload);
       }
       fetchCOA();
       setOpen(false);
@@ -114,7 +112,7 @@ export default function MasterCOA() {
     if (!confirm("Hapus akun COA ini?")) return;
     try {
       const kode = data[i].kode_akun;
-      await axios.delete(`${API_URL}/${kode}`);
+      await API.delete(`/coa/${kode}`);
       fetchCOA();
     } catch (err) {
       console.error("Delete error:", err);
@@ -258,24 +256,10 @@ export default function MasterCOA() {
               Tipe Balance
             </SoftTypography>
 
-            <div
-              style={{
-                position: "relative",
-                marginTop: 6,
-              }}
-            >
+            <div style={{ position: "relative", marginTop: 6 }}>
               <select
                 value={form.tipe_balance}
                 onChange={(e) => setForm({ ...form, tipe_balance: e.target.value })}
-                onFocus={(e) => {
-                  e.target.style.border = "1px solid #ccc";
-                  e.target.style.outline = "none";
-                }}
-
-                onBlur={(e) => {
-                  e.target.style.border = "1px solid #ccc";
-                  e.target.style.outline = "none";
-                }}
                 style={{
                   width: "100%",
                   height: "45px",
@@ -288,9 +272,8 @@ export default function MasterCOA() {
                   cursor: "pointer",
                 }}
               >
-                <option value="" disabled>Pilih Tipe Balance</option>
-                <option value="DEBIT">Debit</option>
-                <option value="KREDIT">Kredit</option>
+                <option value="debit">Debit</option>
+                <option value="kredit">Kredit</option>
               </select>
 
               <KeyboardArrowDownIcon
@@ -316,8 +299,9 @@ export default function MasterCOA() {
                   setForm({ ...form, is_active: e.target.checked })
                 }
               />
-              {/* <SoftTypography>{form.is_active ? "Aktif" : "Tidak Aktif"}</SoftTypography> */}
-              <SoftTypography variant="caption">{form.is_active ? "Aktif" : "Tidak Aktif"}</SoftTypography>
+              <SoftTypography variant="caption">
+                {form.is_active ? "Aktif" : "Tidak Aktif"}
+              </SoftTypography>
             </Box>
           </Box>
 
@@ -332,7 +316,6 @@ export default function MasterCOA() {
             <Button
               variant="contained"
               color="info"
-              sx={{ color: "#0000FF !important" }}
               onClick={save}
             >
               Simpan

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import axios from "axios";
+import API from "api/api";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import {
@@ -15,9 +17,12 @@ import Icon from "@mui/material/Icon";
 import SoftTypography from "components/SoftTypography";
 import SoftBox from "components/SoftBox";
 
+import { InputAdornment } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import Footer from "examples/Footer";
 
 import Table from "examples/Tables/Table";
@@ -26,17 +31,51 @@ import bebanTableData from "./data/beban";
 
 export default function BebanOperasional() {
   const { columns, rows: rawRows } = bebanTableData;
-
-  const [data, setData] = useState(rawRows);
+  const [data, setData] = useState([]);
+  const [coaList, setCoaList] = useState([]);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [user, setUser] = useState(null);
 
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(5);
+  const [rowsPerPage] = useState(10);
 
   const indexOfLastRow = page * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
   const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.max(1, Math.ceil(data.length / rowsPerPage));
+
+  React.useEffect(() => {
+    const u = JSON.parse(localStorage.getItem("user") || "{}");
+
+    if (!u.id) {
+      console.error("User ID tidak ditemukan di localStorage");
+    } else {
+      setUser(u);
+    }
+
+    fetchBeban();
+    fetchCoa();
+  }, []);
+
+  async function fetchBeban() {
+    try {
+      const res = await API.get("/beban");
+      setData(res.data);
+      setPage(1);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function fetchCoa() {
+    try {
+      const res = await API.get("/coa");
+      setCoaList(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   const [form, setForm] = useState({
     jenis_beban: "",
@@ -44,14 +83,25 @@ export default function BebanOperasional() {
     nominal: "",
     tanggal_beban: "",
     keterangan: "",
-    id_user: 1,
+    id_user: "",
     created_at: "",
+    updated_at: "",
   });
 
   function formatDate(dateString) {
-    const d = new Date(dateString);
-    if (isNaN(d)) return dateString;
-    return d.toISOString().slice(0, 10);
+    if (!dateString) return "";
+
+    // handle format "YYYY-MM-DD HH:mm:ss"
+    if (dateString.includes(" ")) {
+      return dateString.split(" ")[0];
+    }
+
+    // handle format ISO
+    if (dateString.includes("T")) {
+      return dateString.split("T")[0];
+    }
+
+    return dateString;
   }
 
   function openAdd() {
@@ -60,42 +110,80 @@ export default function BebanOperasional() {
       jenis_beban: "",
       kode_akun: "",
       nominal: "",
-      tanggal_beban: "",
+      tanggal_beban: new Date().toISOString().slice(0, 10),
       keterangan: "",
-      id_user: 1,
-      created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+      id_user: user?.id || null,
     });
+
     setOpen(true);
   }
 
   function openEdit(i) {
     setEditingIndex(i);
-    setForm(data[i]);
+    setForm({
+      jenis_beban: data[i].jenis_beban,
+      kode_akun: data[i].kode_akun,
+      nominal: data[i].nominal,
+      tanggal_beban: formatDate(data[i].tanggal_beban),
+      keterangan: data[i].keterangan,
+      id_user: data[i].id_user,
+    });
     setOpen(true);
+  }
+
+  async function createData() {
+    try {
+      await API.post("/beban", {
+        ...form,
+        id_user: user?.id,
+      });
+      fetchBeban();
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menambah data");
+    }
+  }
+
+  async function updateData(id) {
+    try {
+      await API.put(`/beban/${id}`, {
+        jenis_beban: form.jenis_beban,
+        kode_akun: form.kode_akun,
+        nominal: form.nominal,
+        tanggal_beban: form.tanggal_beban,
+        keterangan: form.keterangan,
+        id_user: user?.id,
+      });
+      fetchBeban();
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengubah data");
+    }
   }
 
   function save() {
     if (editingIndex === null) {
-      setData((prev) => [
-        {
-          ...form,
-          id: Math.max(0, ...prev.map((r) => r.id)) + 1,
-        },
-        ...prev,
-      ]);
+      createData();
     } else {
-      setData((prev) =>
-        prev.map((r, idx) => (idx === editingIndex ? form : r))
-      );
+      const id = data[editingIndex].id;
+      updateData(id);
     }
-    setOpen(false);
-    setPage(1);
   }
 
-  function remove(i) {
+  async function remove(i) {
     if (!confirm("Hapus data beban ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
-    setPage(1);
+
+    const id = data[i].id;
+
+    try {
+      await API.delete(`/beban/${id}`);
+      fetchBeban();
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menghapus data");
+    }
   }
 
   const tableRows = currentRows.map((row, index) => {
@@ -136,12 +224,14 @@ export default function BebanOperasional() {
       ),
       id_user: (
         <SoftTypography variant="caption" color="text">
-          {row.id_user}
+          {row.user_nama}
         </SoftTypography>
       ),
       created_at: (
         <SoftTypography variant="caption" color="text">
-          {formatDate(row.created_at)}
+          {row.updated_at
+            ? formatDate(row.updated_at)
+            : formatDate(row.created_at)}
         </SoftTypography>
       ),
       aksi: (
@@ -205,7 +295,7 @@ export default function BebanOperasional() {
                 >
                   <Button
                     variant="outlined"
-                    disabled={page === 1}
+                    disabled={page === 1 || data.length === 0}
                     onClick={() => setPage(page - 1)}
                   >
                     <SoftTypography fontSize="13px" fontWeight="medium" color="black">
@@ -214,12 +304,12 @@ export default function BebanOperasional() {
                   </Button>
 
                   <SoftTypography variant="caption">
-                    Page {page} of {Math.ceil(data.length / rowsPerPage)}
+                    Page {page} of {totalPages}
                   </SoftTypography>
 
                   <Button
                     variant="outlined"
-                    disabled={page === Math.ceil(data.length / rowsPerPage)}
+                    disabled={page === totalPages || data.length === 0}
                     onClick={() => setPage(page + 1)}
                   >
                     <SoftTypography fontSize="13px" fontWeight="medium" color="black">
@@ -233,7 +323,6 @@ export default function BebanOperasional() {
         </Grid>
       </SoftBox>
 
-      {/* MODAL INPUT */}
       <Modal
         open={open}
         onClose={() => setOpen(false)}
@@ -263,6 +352,18 @@ export default function BebanOperasional() {
               variant="outlined"
               value={form.jenis_beban}
               onChange={(e) => setForm({ ...form, jenis_beban: e.target.value })}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                }
+              }}
             />
           </Box>
 
@@ -270,12 +371,46 @@ export default function BebanOperasional() {
             <SoftTypography variant="caption" fontWeight="medium">
               Kode Akun
             </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={form.kode_akun}
-              onChange={(e) => setForm({ ...form, kode_akun: e.target.value })}
-            />
+            <div style={{ position: "relative", marginTop: 0, }} >
+              <select
+                value={form.kode_akun}
+                onChange={(e) => setForm({ ...form, kode_akun: e.target.value })}
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%", height: "45px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" disabled>Pilih Kode Akun</option>
+                {coaList.map((c) => (
+                  <option key={c.kode_akun} value={c.kode_akun}>
+                    {c.kode_akun} - {c.nama_akun}
+                  </option>
+                ))}
+              </select>
+              <KeyboardArrowDownIcon
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "black",
+                }} />
+            </div>
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
@@ -285,9 +420,20 @@ export default function BebanOperasional() {
             <TextField
               fullWidth
               variant="outlined"
-              type="number"
               value={form.nominal}
               onChange={(e) => setForm({ ...form, nominal: e.target.value })}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                }
+              }}
             />
           </Box>
 
@@ -295,14 +441,69 @@ export default function BebanOperasional() {
             <SoftTypography variant="caption" fontWeight="medium">
               Tanggal Beban
             </SoftTypography>
-            <TextField
-              fullWidth
-              type="date"
-              variant="outlined"
-              InputLabelProps={{ shrink: true }}
-              value={form.tanggal_beban}
-              onChange={(e) => setForm({ ...form, tanggal_beban: e.target.value })}
-            />
+            <div
+              style={{
+                position: "relative",
+                marginTop: 0,
+              }}
+            >
+              <input
+                type="date"
+                value={form.tanggal_beban}
+                onChange={(e) =>
+                  setForm({ ...form, tanggal_beban: e.target.value })
+                }
+                id="dateInput"
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%",
+                  height: "45px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+              />
+              <CalendarTodayIcon
+                onClick={() => {
+                  const input = document.getElementById("dateInput");
+                  if (input?.showPicker) input.showPicker();
+                }}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "black",
+                  zIndex: 3,
+                }}
+              />
+              <style>
+                {`
+                  input[type="date"]::-webkit-calendar-picker-indicator {
+                    opacity: 0;
+                    position: absolute;
+                    right: 0;
+                    width: 100%;
+                    height: 100%;
+                    cursor: pointer;
+                  }
+                `}
+              </style>
+            </div>
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
@@ -314,6 +515,18 @@ export default function BebanOperasional() {
               variant="outlined"
               value={form.keterangan}
               onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                }
+              }}
             />
           </Box>
 

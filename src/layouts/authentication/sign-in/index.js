@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API from "api/api";
 
 // react-router-dom components
 import { Link } from "react-router-dom";
@@ -43,7 +44,7 @@ function SignIn() {
       localStorage.setItem("user", JSON.stringify(user));
 
       // SET DEFAULT AXIOS HEADER
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       navigate("/dashboard");
     } catch (err) {

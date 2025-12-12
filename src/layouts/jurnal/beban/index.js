@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import axios from "axios";
+import API from "api/api";
+
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
@@ -13,16 +16,66 @@ import Table from "examples/Tables/Table";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-// DATA
+// DATA TABLE HEADER
 import laporanBebanTableData from "./data/beban";
 
-export default function Beban() {
-  const { columns, rows: rawRows } = laporanBebanTableData;
+const API_JURNAL = "http://localhost:5000/api/jurnal-beban";
+const API_BEBAN = "http://localhost:5000/api/beban";
 
-  const [data, setData] = useState(rawRows);
+export default function Beban() {
+  const { columns } = laporanBebanTableData;
+
+  const [data, setData] = useState([]);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [awal, setAwal] = useState("");
+  const [akhir, setAkhir] = useState("");
+
+  const token = localStorage.getItem("token");
+
+  // LOAD DATA + FILTER
+  async function loadData(from = "", to = "") {
+    try {
+      const res = await API.get("/jurnal-beban");
+      const json = res.data;
+
+      if (!Array.isArray(json)) {
+        setData([]);
+        return;
+      }
+
+      // Convert full data first
+      let filtered = [...json];
+
+      // Kalau ada filter → filter manual di FE
+      if (from && to) {
+        filtered = filtered.filter((row) => {
+          const rowDate = new Date(row.tanggal).toISOString().split("T")[0];
+          return rowDate >= from && rowDate <= to;
+        });
+      }
+
+      // SORT BY ID ASC
+      const sorted = [...filtered].sort(
+        (a, b) => a.id_jurnal_beban - b.id_jurnal_beban
+      );
+
+      setData(sorted);
+    } catch (err) {
+      console.error("LOAD ERROR:", err);
+    }
+  }
+
+  useEffect(() => {
+    loadData(awal, akhir);
+  }, []);
+
+  function formatDate(dateString) {
+    if (!dateString) return "";
+    return dateString.split("T")[0];
+  }
 
   const [form, setForm] = useState({
     id_jurnal_beban: "",
@@ -32,63 +85,95 @@ export default function Beban() {
     nominal: "",
     tipe_balance: "",
     keterangan: "",
-    created_at: "",
-    updated_at: "",
   });
 
-  // OPEN EDIT
+  // OPEN MODAL EDIT
   function openEdit(i) {
     setEditingIndex(i);
-    setForm({ ...data[i] });
+    setForm({ ...data[i], tanggal: formatDate(data[i].tanggal) });
     setOpen(true);
   }
 
   // SAVE EDIT
-  function save() {
-    const updatedForm = {
-      ...form,
-      updated_at: new Date().toISOString().split("T")[0],
-    };
+  async function save() {
+    try {
+      const id = form.id_jurnal_beban;
 
-    setData((prev) =>
-      prev.map((item, idx) => (idx === editingIndex ? updatedForm : item))
-    );
+      const res = await API.put(`/jurnal-beban/${id}`, {
+        tanggal: form.tanggal,
+        kode: form.kode,
+        nominal: form.nominal,
+        tipe_balance: form.tipe_balance,
+        keterangan: form.keterangan,
+      });
 
-    setOpen(false);
+      await loadData(awal, akhir);
+      setOpen(false);
+
+    } catch (err) {
+      console.error("UPDATE ERROR:", err.response?.data || err.message);
+      alert("Update gagal: " + (err.response?.data?.message || err.message));
+    }
   }
 
-  // DELETE
-  function remove(i) {
-    if (!confirm("Hapus beban ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
+
+  // DELETE JURNAL
+  async function remove(i) {
+    const item = data[i];
+    if (!confirm("Hapus jurnal ini?")) return;
+
+    try {
+      await API.delete(`/jurnal-beban/${item.id_jurnal_beban}`);
+      loadData(awal, akhir);
+    } catch (err) {
+      alert("Gagal menghapus jurnal");
+    }
   }
 
-  // TABLE VIEW
-  const tableRows = data.map((row, index) => ({
-    id_jurnal_beban: <SoftTypography variant="caption">{row.id_jurnal_beban}</SoftTypography>,
-    id_beban: <SoftTypography variant="caption">{row.id_beban}</SoftTypography>,
-    tanggal: <SoftTypography variant="caption">{row.tanggal}</SoftTypography>,
-    kode: <SoftTypography variant="caption">{row.kode}</SoftTypography>,
-    nominal: (
-      <SoftTypography variant="caption">
-        {Number(row.nominal).toLocaleString("id-ID")}
-      </SoftTypography>
-    ),
-    tipe_balance: <SoftTypography variant="caption">{row.tipe_balance}</SoftTypography>,
-    keterangan: <SoftTypography variant="caption">{row.keterangan}</SoftTypography>,
-    created_at: <SoftTypography variant="caption">{row.created_at}</SoftTypography>,
+  // FILTER BUTTON PENCET
+  function applyFilter() {
+    loadData(awal, akhir);
+  }
 
-    aksi: (
-      <SoftBox display="flex" justifyContent="center" gap={1}>
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
-          <EditIcon />
-        </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
-          <DeleteIcon />
-        </IconButton>
-      </SoftBox>
-    ),
-  }));
+  // RENDER ROWS
+  const tableRows = useMemo(
+    () =>
+      data.map((row, index) => ({
+        id_jurnal_beban: <SoftTypography variant="caption">{row.id_jurnal_beban}</SoftTypography>,
+        id_beban: <SoftTypography variant="caption">{row.id_beban}</SoftTypography>,
+        tanggal: (
+          <SoftTypography variant="caption">{formatDate(row.tanggal)}</SoftTypography>
+        ),
+        kode: <SoftTypography variant="caption">{row.kode}</SoftTypography>,
+        nominal: (
+          <SoftTypography variant="caption">
+            {Number(row.nominal).toLocaleString("id-ID")}
+          </SoftTypography>
+        ),
+        tipe_balance: <SoftTypography variant="caption">{row.tipe_balance}</SoftTypography>,
+        keterangan: <SoftTypography variant="caption">{row.keterangan}</SoftTypography>,
+        created_at: (
+          <SoftTypography variant="caption">{formatDate(row.created_at)}</SoftTypography>
+        ),
+
+        aksi: (
+          <SoftBox display="flex" justifyContent="center" gap={1}>
+            <IconButton color="info" size="small" onClick={() => openEdit(index)}>
+              <EditIcon />
+            </IconButton>
+            <IconButton color="error" size="small" onClick={() => remove(index)}>
+              <DeleteIcon />
+            </IconButton>
+          </SoftBox>
+        ),
+      })),
+    [data]
+  );
+
+  const columnsFix = useMemo(
+    () => [...columns, { name: "aksi", label: "Aksi", align: "center" }],
+    []
+  );
 
   return (
     <DashboardLayout>
@@ -101,25 +186,38 @@ export default function Beban() {
               {/* FILTER */}
               <SoftBox p={3}>
                 <SoftTypography variant="h6">Jurnal Beban</SoftTypography>
+
                 <Grid container spacing={2} mt={1.5} mb={2}>
                   <Grid item xs={12} md={3}>
-                    <SoftTypography fontSize="14px" fontWeight="medium">
-                      Tanggal Awal
-                    </SoftTypography>
-                    <TextField type="date" fullWidth size="medium" />
+                    <SoftTypography fontSize="14px">Tanggal Awal</SoftTypography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      value={awal}
+                      onChange={(e) => setAwal(e.target.value)}
+                    />
                   </Grid>
 
                   <Grid item xs={12} md={3}>
-                    <SoftTypography fontSize="14px" fontWeight="medium">
-                      Tanggal Akhir
-                    </SoftTypography>
-                    <TextField type="date" fullWidth size="medium" />
+                    <SoftTypography fontSize="14px">Tanggal Akhir</SoftTypography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      value={akhir}
+                      onChange={(e) => setAkhir(e.target.value)}
+                    />
                   </Grid>
 
                   <Grid item xs={12} md={1.5}>
-                    <Button variant="contained" color="primary" fullWidth sx={{ mt: 2.5 }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      sx={{ mt: 2.5 }}
+                      onClick={applyFilter}
+                    >
                       <Icon sx={{ mr: 1, color: "white !important" }}>search</Icon>
-                      <SoftTypography fontSize="13px" fontWeight="medium" color="white">
+                      <SoftTypography fontSize="13px" color="white">
                         Tampilkan
                       </SoftTypography>
                     </Button>
@@ -128,20 +226,8 @@ export default function Beban() {
               </SoftBox>
 
               {/* TABLE */}
-              <SoftBox
-                sx={{
-                  "& .MuiTableRow-root:not(:last-child)": {
-                    "& td": {
-                      borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                        `${borderWidth[1]} solid ${borderColor}`,
-                    },
-                  },
-                }}
-              >
-                <Table
-                  columns={[...columns, { name: "aksi", label: "Aksi", align: "center" }]}
-                  rows={tableRows}
-                />
+              <SoftBox>
+                <Table columns={columnsFix} rows={tableRows} />
               </SoftBox>
             </Card>
           </Grid>
@@ -164,27 +250,98 @@ export default function Beban() {
             Edit Jurnal
           </SoftTypography>
 
-          {[
-            "id_jurnal_beban",
-            "id_beban",
-            "tanggal",
-            "kode",
-            "nominal",
-            "tipe_balance",
-            "keterangan",
-          ].map((field) => (
-            <Box key={field} mb={2}>
-              <SoftTypography variant="caption" fontWeight="medium">
-                {field.toUpperCase()}
-              </SoftTypography>
-              <TextField
-                fullWidth
-                type={field === "tanggal" ? "date" : "text"}
-                value={form[field]}
-                onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              ID Beban
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              disabled
+              value={form.id_beban}
+              onChange={(e) => setForm({ ...form, id_beban: e.target.value })}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                }
+              }}
+            />
+          </Box>
+
+          {["tanggal", "kode", "nominal", "keterangan"].map(
+            (field) => (
+              <Box key={field} mb={2}>
+                <SoftTypography variant="caption" fontWeight="medium">
+                  {field.replace(/_/g, " ").toUpperCase()}
+                </SoftTypography>
+                <TextField
+                  fullWidth
+                  type={field === "tanggal" ? "date" : "text"}
+                  value={form[field] || ""}
+                  onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                />
+              </Box>
+            )
+          )}
+
+          {/* TIPE BALANCE (DEBIT / KREDIT) */}
+          <Box mb={2}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Tipe Balance
+            </SoftTypography>
+
+            <div style={{ position: "relative", marginTop: 4 }}>
+              <select
+                value={form.tipe_balance}
+                onChange={(e) =>
+                  setForm({ ...form, tipe_balance: e.target.value })
+                }
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%",
+                  height: "45px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" disabled>
+                  Pilih Tipe Balance
+                </option>
+                <option value="debit">Debit</option>
+                <option value="kredit">Kredit</option>
+              </select>
+
+              <KeyboardArrowDownIcon
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "black",
+                }}
               />
-            </Box>
-          ))}
+            </div>
+          </Box>
 
           <Box mt={3} textAlign="right">
             <Button onClick={() => setOpen(false)} sx={{ color: "red", mr: 2 }}>
