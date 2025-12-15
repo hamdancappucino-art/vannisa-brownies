@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import API from "api/api";
 
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -24,7 +25,6 @@ import laporanPenjualanTableData from "./data/penjualan";
 export default function LaporanPenjualan() {
   const { rows: initialRows, columns } = laporanPenjualanTableData;
 
-  // langsung pakai data JSON tanpa parsing JSX
   const [data, setData] = useState(initialRows);
 
   const [open, setOpen] = useState(false);
@@ -41,6 +41,20 @@ export default function LaporanPenjualan() {
     created_at: "",
   });
 
+  useEffect(() => {
+    API.get("/jurnal-penjualan")
+      .then((res) => {
+        const mapped = res.data.map((row) => ({
+          ...row,
+          id_penjualan: row.id_transaksi
+        }));
+        setData(mapped);
+      })
+      .catch((err) => {
+        console.error("Gagal load jurnal:", err);
+      });
+  }, []);
+
   // OPEN EDIT
   function openEdit(i) {
     setEditingIndex(i);
@@ -50,20 +64,44 @@ export default function LaporanPenjualan() {
 
   // SAVE EDIT
   function save() {
-    const updated = [...data];
-    updated[editingIndex] = {
-      ...form,
+    const id = form.id_jurnal_penjualan;
+
+    API.put(`/jurnal-penjualan/${id}`, {
+      tanggal: form.tanggal,
+      id_coa: form.id_coa || 3,
       nominal: Number(form.nominal),
-      created_at: form.created_at || new Date().toISOString().split("T")[0],
-    };
-    setData(updated);
-    setOpen(false);
+      tipe_balance: form.tipe_balance || "kredit",
+      keterangan: form.keterangan
+    })
+      .then(() => {
+        const updated = [...data];
+        updated[editingIndex] = {
+          ...form,
+          nominal: Number(form.nominal)
+        };
+        setData(updated);
+        setOpen(false);
+      })
+      .catch((err) => {
+        console.error("Gagal update jurnal:", err);
+        alert("Gagal update data");
+      });
   }
 
   // DELETE ROW
   function remove(i) {
     if (!confirm("Hapus data ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
+
+    const id = data[i].id_jurnal_penjualan;
+
+    API.delete(`/jurnal-penjualan/${id}`)
+      .then(() => {
+        setData((prev) => prev.filter((_, idx) => idx !== i));
+      })
+      .catch((err) => {
+        console.error("Gagal hapus jurnal:", err);
+        alert("Gagal menghapus data");
+      });
   }
 
   // BUILD TABLE ROWS (untuk ditampilkan di Soft UI Dashboard)
