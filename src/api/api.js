@@ -4,10 +4,16 @@ const API = axios.create({
   baseURL: "http://localhost:5000/api",
 });
 
-const token = localStorage.getItem("token");
-
-if (token) {
-  API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-}
+// 🔐 selalu ambil token TERBARU sebelum request dikirim
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default API;

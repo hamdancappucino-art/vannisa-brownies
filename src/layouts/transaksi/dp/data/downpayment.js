@@ -6,11 +6,12 @@ const tableDataDownPayment = {
     { name: "kode_transaksi", label: "Kode Transaksi", align: "center" },
     { name: "nama_pelanggan", label: "Nama Pelanggan", align: "center" },
     { name: "no_telp", label: "No Telp", align: "center" },
+    { name: "nama_produk", label: "Nama Produk", align: "center" },
+    { name: "jumlah_barang", label: "Jumlah Barang", align: "center" },
     { name: "nominal_dp", label: "Nominal DP", align: "center" },
     { name: "tanggal_dp", label: "Tanggal DP", align: "center" },
     { name: "keterangan", label: "Keterangan", align: "center" },
     { name: "status", label: "Status", align: "center" },
-    { name: "id_user", label: "ID User", align: "center" },
     { name: "aksi", label: "Aksi", align: "center" },
   ],
 

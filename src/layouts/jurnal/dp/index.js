@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import API from "api/api";
+import React, { useEffect, useState } from "react";
 
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -22,17 +23,14 @@ import Table from "examples/Tables/Table";
 import laporanDPTableData from "./data/dp";
 
 export default function JurnalDP() {
-  const { rows: initialRows, columns } = laporanDPTableData;
+  const { columns } = laporanDPTableData;
 
-  // langsung pakai data JSON tanpa parsing JSX
-  const [data, setData] = useState(initialRows);
-
+  const [data, setData] = useState([]);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
   const [form, setForm] = useState({
     id_jurnal_dp: "",
-    id_dp: "",
     tanggal: "",
     kode: "",
     nominal: "",
@@ -41,68 +39,97 @@ export default function JurnalDP() {
     created_at: "",
   });
 
-  // OPEN EDIT
+  /* =======================
+   * FETCH DATA
+   * ======================= */
+  const fetchData = async () => {
+    try {
+      const res = await API.get("/jurnal-dp");
+      setData(res.data);
+    } catch (err) {
+      alert("Gagal mengambil data jurnal DP");
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  /* =======================
+   * EDIT
+   * ======================= */
   function openEdit(i) {
     setEditingIndex(i);
     setForm({ ...data[i] });
     setOpen(true);
   }
 
-  // SAVE EDIT
-  function save() {
-    const updated = [...data];
-    updated[editingIndex] = { ...form, total: Number(form.total) };
-    setData(updated);
-    setOpen(false);
+  async function save() {
+    try {
+      await API.put(`/jurnal-dp/${form.id_jurnal_dp}`, {
+        tanggal: form.tanggal,
+        nominal: form.nominal,
+        keterangan: form.keterangan,
+      });
+
+      setOpen(false);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Gagal update jurnal DP");
+    }
   }
 
-  // DELETE ROW
-  function remove(i) {
+  /* =======================
+   * DELETE
+   * ======================= */
+  async function remove(i) {
     if (!confirm("Hapus data ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
+
+    try {
+      const id = data[i].id_jurnal_dp;
+      await API.delete(`/jurnal-dp/${id}`);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Gagal hapus jurnal DP");
+    }
   }
 
-  // BUILD TABLE ROWS (untuk ditampilkan di Soft UI Dashboard)
+  /* =======================
+   * TABLE RENDER
+   * ======================= */
   const tableRows = data.map((row, index) => ({
-    id_jurnal_dp: row.id_jurnal_dp,
-    id_dp: row.id_dp,
-
+    id_jurnal_dp: (
+      <SoftTypography variant="caption">{row.id_jurnal_dp}</SoftTypography>
+    ),
+    id_dp: (
+      <SoftTypography variant="caption">{row.id_dp}</SoftTypography>
+    ),
     tanggal: (
-      <SoftTypography variant="caption" color="text">
-        {row.tanggal}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.tanggal}</SoftTypography>
     ),
     kode: (
-      <SoftTypography variant="caption" color="text">
-        {row.kode}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.kode}</SoftTypography>
     ),
     nominal: (
-      <SoftTypography variant="caption" color="text">
+      <SoftTypography variant="caption">
         Rp{Number(row.nominal).toLocaleString("id-ID")}
       </SoftTypography>
     ),
     tipe_balance: (
-      <SoftTypography variant="caption" color="text">
-        {row.tipe_balance}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.tipe_balance}</SoftTypography>
     ),
     keterangan: (
-      <SoftTypography variant="caption" color="text">
-        {row.keterangan}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.keterangan}</SoftTypography>
     ),
     created_at: (
-      <SoftTypography variant="caption" color="text">
-        {row.created_at}
-      </SoftTypography>
+      <SoftTypography variant="caption">{row.created_at}</SoftTypography>
     ),
     action: (
       <SoftBox display="flex" justifyContent="center" gap={1}>
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
+        <IconButton size="small" color="info" onClick={() => openEdit(index)}>
           <EditIcon />
         </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
+        <IconButton size="small" color="error" onClick={() => remove(index)}>
           <DeleteIcon />
         </IconButton>
       </SoftBox>

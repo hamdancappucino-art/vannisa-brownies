@@ -34,7 +34,11 @@ function TransaksiDP() {
   const fetchDP = async () => {
     const res = await API.get("/dp");
 
-    const data = res.data.map((item, index) => ({
+    const sorted = res.data.sort(
+      (a, b) => new Date(a.tanggal_dp) - new Date(b.tanggal_dp)
+    );
+
+    const data = sorted.map((item, index) => ({
       no: index + 1,
       ...item
     }));
@@ -77,11 +81,12 @@ function TransaksiDP() {
   const [newDP, setNewDP] = useState({
     id_pelanggan: "",
     id_produk: "",
+    jumlah_barang: 1,
+    harga_jual: "",
     tanggal_dp: "",
     nominal_dp: "",
     keterangan: "",
     no_telp: "",
-    harga_jual: "",
   });
 
   const handleAddSubmit = async () => {
@@ -90,13 +95,23 @@ function TransaksiDP() {
       return;
     }
 
+    const totalHarga =
+      Number(newDP.harga_jual) * Number(newDP.jumlah_barang);
+
+    const minDP = totalHarga * 0.5;
+
+    if (Number(newDP.nominal_dp) < minDP) {
+      alert(`Minimal DP adalah ${formatRupiah(minDP)}`);
+      return;
+    }
+
     await API.post("/dp", {
       id_pelanggan: newDP.id_pelanggan,
       id_produk: newDP.id_produk,
+      jumlah_barang: Number(newDP.jumlah_barang),
       tanggal_dp: newDP.tanggal_dp,
       nominal_dp: Number(newDP.nominal_dp),
-      keterangan: newDP.keterangan || "-",
-      id_user: newDP.id_user ? username : null,
+      keterangan: newDP.keterangan || "-"
     });
 
     await fetchDP();
@@ -104,6 +119,8 @@ function TransaksiDP() {
 
     setNewDP({
       id_pelanggan: "",
+      id_produk: "",
+      jumlah_barang: "",
       tanggal_dp: "",
       nominal_dp: "",
       keterangan: "",
@@ -127,7 +144,7 @@ function TransaksiDP() {
 
     await API.post(`/dp/${selectedDP.id}/lunasi`, {
       tanggal: new Date().toISOString().slice(0, 10),
-      total_penjualan: totalPenjualan,
+      nominal_pelunasan: Number(nominalPelunasan)
     });
 
     await fetchDP();
@@ -250,6 +267,12 @@ function TransaksiDP() {
                         no_telp: (
                           <SoftTypography variant="caption">{r.no_telp}</SoftTypography>
                         ),
+                        nama_produk: (
+                          <SoftTypography variant="caption">{r.nama_produk}</SoftTypography>
+                        ),
+                        jumlah_barang: (
+                          <SoftTypography variant="caption">{r.jumlah_barang}</SoftTypography>
+                        ),
                         nominal_dp: (
                           <SoftTypography variant="caption">
                             {formatRupiah(r.nominal_dp)}
@@ -264,9 +287,9 @@ function TransaksiDP() {
                         status: (
                           <SoftTypography variant="caption">{r.status}</SoftTypography>
                         ),
-                        id_user: (
-                          <SoftTypography variant="caption">{r.id_user}</SoftTypography>
-                        ),
+                        // id_user: (
+                        //   <SoftTypography variant="caption">{r.id_user}</SoftTypography>
+                        // ),
                         aksi: r.status === "Belum Lunas" ? (
                           <Button
                             variant="outlined"
@@ -433,9 +456,9 @@ function TransaksiDP() {
                 }}
               >
                 <option value="" disabled>Pilih Produk</option>
-                {produkList.map((c) => (
-                  <option key={c.id_produk} value={c.id_produk}>
-                    {c.nama_produk}
+                {produkList.map((p) => (
+                  <option key={p.id_produk} value={p.id_produk}>
+                    {p.nama_produk}
                   </option>
                 ))}
               </select>
@@ -461,6 +484,35 @@ function TransaksiDP() {
               InputProps={{
                 readOnly: true,
               }}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                  color: "black !important"
+                }
+              }}
+            />
+          </Box>
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Jumlah Barang
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={newDP.jumlah_barang}
+              onChange={(e) =>
+                setNewDP({
+                  ...newDP,
+                  jumlah_barang: Number(e.target.value)
+                })
+              }
               sx={{
                 "& .MuiOutlinedInput-input": {
                   maxWidth: "100% !important",
