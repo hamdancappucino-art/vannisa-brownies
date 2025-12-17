@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import API from "api/api";
 // @mui material components
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -12,74 +14,154 @@ import SoftTypography from "components/SoftTypography";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import Table from "examples/Tables/Table";
 import tableDataDownPayment from "./data/downpayment";
-import { useState } from "react";
 
 function TransaksiDP() {
-  const { columns, rows: dpRows } = tableDataDownPayment;
+  const { columns } = tableDataDownPayment;
 
-  const [rows, setRows] = useState(dpRows);
-
+  const [rows, setRows] = useState([]);
+  const [rowsAsli, setRowsAsli] = useState([]);
+  const [pelangganList, setPelangganList] = useState([]);
+  const [produkList, setProdukList] = useState([]);
   const [keyword, setKeyword] = useState("");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const username = user?.username || "admin";
 
+  // ================= FETCH =================
+  const fetchDP = async () => {
+    const res = await API.get("/dp");
+
+    const data = res.data.map((item, index) => ({
+      no: index + 1,
+      ...item
+    }));
+
+    setRows(data);
+    setRowsAsli(data);
+  };
+
+  const fetchPelanggan = async () => {
+    const res = await API.get("/pelanggan");
+    setPelangganList(res.data);
+  };
+
+  const fetchProduk = async () => {
+    const res = await API.get("/produk");
+    setProdukList(res.data);
+  };
+
+  useEffect(() => {
+    fetchDP();
+    fetchPelanggan();
+    fetchProduk();
+  }, []);
+
+  // ================= SEARCH =================
   const handleSearch = () => {
-    console.log("Keyword:", keyword);
+    if (!keyword) return setRows(rowsAsli);
 
-    const filtered = dpRows.filter(
+    const filtered = rowsAsli.filter(
       (r) =>
-        r.nama_pelanggan.toLowerCase().includes(keyword.toLowerCase()) ||
-        r.kode_transaksi.toLowerCase().includes(keyword.toLowerCase())
+        r.nama_pelanggan?.toLowerCase().includes(keyword.toLowerCase()) ||
+        r.kode_transaksi?.toLowerCase().includes(keyword.toLowerCase())
     );
+
     setRows(filtered);
   };
 
-  const generateKodeRunning = () => {
-    const numbers = rows
-      .map(r => parseInt(r.kode_transaksi.replace("DP-", ""), 10))
-      .filter(n => !isNaN(n));
-
-    const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
-    const nextNumber = String(maxNumber + 1).padStart(3, "0");
-
-    return `DP-${nextNumber}`;
-  };
-
+  // ================= ADD DP =================
   const [openAddModal, setOpenAddModal] = useState(false);
-
   const [newDP, setNewDP] = useState({
-    nama_pelanggan: "",
-    kode_transaksi: generateKodeRunning(),
+    id_pelanggan: "",
+    id_produk: "",
     tanggal_dp: "",
     nominal_dp: "",
-    status: "Belum Lunas",
+    keterangan: "",
+    no_telp: "",
+    harga_jual: "",
   });
 
-  const openAdd = () => setOpenAddModal(true);
-  const closeAdd = () => setOpenAddModal(false);
+  const handleAddSubmit = async () => {
+    if (!newDP.id_pelanggan || !newDP.nominal_dp || !newDP.id_produk || !newDP.tanggal_dp) {
+      alert("Lengkapi data DP");
+      return;
+    }
 
-  const handleAddSubmit = () => {
-    const newRow = {
-      no: rows.length + 1,
-      ...newDP,
-      aksi: "Detail",
-    };
+    await API.post("/dp", {
+      id_pelanggan: newDP.id_pelanggan,
+      id_produk: newDP.id_produk,
+      tanggal_dp: newDP.tanggal_dp,
+      nominal_dp: Number(newDP.nominal_dp),
+      keterangan: newDP.keterangan || "-",
+      id_user: newDP.id_user ? username : null,
+    });
 
-    setRows([...rows, newRow]);
-    closeAdd();
+    await fetchDP();
+    setOpenAddModal(false);
+
+    setNewDP({
+      id_pelanggan: "",
+      tanggal_dp: "",
+      nominal_dp: "",
+      keterangan: "",
+      no_telp: "",
+    });
   };
 
+  // ================= LUNASI =================
   const [openPelunasanModal, setOpenPelunasanModal] = useState(false);
   const [selectedDP, setSelectedDP] = useState(null);
+  const [nominalPelunasan, setNominalPelunasan] = useState("");
 
-  const openPelunasan = (data) => {
-    setSelectedDP(data);
-    setOpenPelunasanModal(true);
+  const handlePelunasanSubmit = async () => {
+    if (!nominalPelunasan) {
+      alert("Nominal pelunasan wajib diisi");
+      return;
+    }
+
+    const totalPenjualan =
+      Number(selectedDP.nominal_dp) + Number(nominalPelunasan);
+
+    await API.post(`/dp/${selectedDP.id}/lunasi`, {
+      tanggal: new Date().toISOString().slice(0, 10),
+      total_penjualan: totalPenjualan,
+    });
+
+    await fetchDP();
+    setOpenPelunasanModal(false);
+    setNominalPelunasan("");
   };
 
-  const closePelunasan = () => setOpenPelunasanModal(false);
-  const [nominalPelunasan, setNominalPelunasan] = useState("");
+  // ================= FORMAT =================
+  const formatRupiah = (value) => {
+    if (value === null || value === undefined || value === "") return "Rp 0,00";
+
+    return Number(value).toLocaleString("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  function formatDate(dateString) {
+    if (!dateString) return "";
+
+    // handle format "YYYY-MM-DD HH:mm:ss"
+    if (dateString.includes(" ")) {
+      return dateString.split(" ")[0];
+    }
+
+    // handle format ISO
+    if (dateString.includes("T")) {
+      return dateString.split("T")[0];
+    }
+
+    return dateString;
+  }
 
   return (
     <DashboardLayout>
@@ -128,7 +210,7 @@ function TransaksiDP() {
                     <Button
                       variant="contained"
                       color="success"
-                      onClick={openAdd}
+                      onClick={() => setOpenAddModal(true)}
                       sx={{
                         color: "inherit",
                         minWidth: "150px",
@@ -170,11 +252,11 @@ function TransaksiDP() {
                         ),
                         nominal_dp: (
                           <SoftTypography variant="caption">
-                            {r.nominal_dp}
+                            {formatRupiah(r.nominal_dp)}
                           </SoftTypography>
                         ),
                         tanggal_dp: (
-                          <SoftTypography variant="caption">{r.tanggal_dp}</SoftTypography>
+                          <SoftTypography variant="caption">{formatDate(r.tanggal_dp)}</SoftTypography>
                         ),
                         keterangan: (
                           <SoftTypography variant="caption">{r.keterangan}</SoftTypography>
@@ -185,15 +267,23 @@ function TransaksiDP() {
                         id_user: (
                           <SoftTypography variant="caption">{r.id_user}</SoftTypography>
                         ),
-                        aksi: (
+                        aksi: r.status === "Belum Lunas" ? (
                           <Button
                             variant="outlined"
                             size="small"
-                            sx={{ textTransform: "none", borderRadius: "8px", fontSize: "12px" }}
-                            onClick={() => openPelunasan(r)}
+                            onClick={() => {
+                              setSelectedDP(r);
+                              setOpenPelunasanModal(true);
+                            }}
                           >
-                            <SoftTypography variant="caption" color="info">Pelunasan</SoftTypography>
+                            <SoftTypography variant="caption" color="info">
+                              Pelunasan
+                            </SoftTypography>
                           </Button>
+                        ) : (
+                          <SoftTypography variant="caption" color="success">
+                            Lunas
+                          </SoftTypography>
                         ),
                       }))}
                     />
@@ -205,7 +295,7 @@ function TransaksiDP() {
         </Grid>
       </SoftBox>
       <Footer />
-      <Modal open={openAddModal} onClose={closeAdd} sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <Modal open={openAddModal} onClose={() => setOpenAddModal(false)} sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
         <Card
           sx={{
             width: 480,
@@ -224,36 +314,235 @@ function TransaksiDP() {
             <SoftTypography variant="caption" fontWeight="medium">
               Nama Pelanggan
             </SoftTypography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              value={newDP.nama_pelanggan}
-              onChange={(e) => setNewDP({ ...newDP, nama_pelanggan: e.target.value })}
-            />
+            <div style={{ position: "relative", marginTop: 0, }} >
+              <select
+                value={newDP.id_pelanggan}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+
+                  const selectedPelanggan = pelangganList.find(
+                    (p) => String(p.id_pelanggan) === String(selectedId)
+                  );
+
+                  setNewDP({
+                    ...newDP,
+                    id_pelanggan: selectedId,
+                    no_telp: selectedPelanggan?.no_telp || "",
+                  });
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%", height: "40px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" disabled>Pilih Pelanggan</option>
+                {pelangganList.map((c) => (
+                  <option key={c.id_pelanggan} value={c.id_pelanggan}>
+                    {c.nama}
+                  </option>
+                ))}
+              </select>
+              <KeyboardArrowDownIcon
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "black",
+                }} />
+            </div>
           </Box>
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption" fontWeight="medium">
-              Kode Transaksi
+              No Telp
             </SoftTypography>
             <TextField
               fullWidth
               variant="outlined"
-              value={newDP.kode_transaksi}
-              InputProps={{ readOnly: true }}
-              onChange={(e) => setNewDP({ ...newDP, kode_transaksi: e.target.value })}
+              value={newDP.no_telp}
+              InputProps={{
+                readOnly: true,
+              }}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                  color: "black !important"
+                }
+              }}
+            />
+          </Box>
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Nama Produk
+            </SoftTypography>
+            <div style={{ position: "relative", marginTop: 0, }} >
+              <select
+                value={newDP.id_produk}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+
+                  const selectedPelanggan = produkList.find(
+                    (p) => String(p.id_produk) === String(selectedId)
+                  );
+
+                  setNewDP({
+                    ...newDP,
+                    id_produk: selectedId,
+                    harga_jual: selectedPelanggan?.harga_jual || "",
+                  });
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%", height: "40px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" disabled>Pilih Produk</option>
+                {produkList.map((c) => (
+                  <option key={c.id_produk} value={c.id_produk}>
+                    {c.nama_produk}
+                  </option>
+                ))}
+              </select>
+              <KeyboardArrowDownIcon
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "black",
+                }} />
+            </div>
+          </Box>
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Harga
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={newDP.harga_jual}
+              InputProps={{
+                readOnly: true,
+              }}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                  color: "black !important"
+                }
+              }}
             />
           </Box>
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption" fontWeight="medium">
               Tanggal DP
             </SoftTypography>
-            <TextField
-              fullWidth
-              type="date"
-              variant="outlined"
-              value={newDP.tanggal_dp}
-              onChange={(e) => setNewDP({ ...newDP, tanggal_dp: e.target.value })}
-            />
+            <div
+              style={{
+                position: "relative",
+                marginTop: 0,
+              }}
+            >
+              <input
+                type="date"
+                value={newDP.tanggal_dp}
+                onChange={(e) =>
+                  setNewDP({ ...newDP, tanggal_dp: e.target.value })
+                }
+                id="dateInput"
+                onFocus={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = "1px solid #ccc";
+                  e.target.style.outline = "none";
+                }}
+                style={{
+                  width: "100%",
+                  height: "40px",
+                  padding: "10px 40px 10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  appearance: "none",
+                  backgroundColor: "white",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+              />
+              <CalendarTodayIcon
+                onClick={() => {
+                  const input = document.getElementById("dateInput");
+                  if (input?.showPicker) input.showPicker();
+                }}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "black",
+                  zIndex: 3,
+                }}
+              />
+              <style>
+                {`
+                  input[type="date"]::-webkit-calendar-picker-indicator {
+                    opacity: 0;
+                    position: absolute;
+                    right: 0;
+                    width: 100%;
+                    height: 100%;
+                    cursor: pointer;
+                  }
+                `}
+              </style>
+            </div>
           </Box>
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption" fontWeight="medium">
@@ -264,11 +553,51 @@ function TransaksiDP() {
               variant="outlined"
               value={newDP.nominal_dp}
               onChange={(e) => setNewDP({ ...newDP, nominal_dp: e.target.value })}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                  color: "black !important"
+                }
+              }}
+            />
+          </Box>
+
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Keterangan
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={newDP.keterangan}
+              onChange={(e) =>
+                setNewDP({ ...newDP, keterangan: e.target.value })
+              }
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                  color: "black !important"
+                }
+              }}
             />
           </Box>
 
           <Box mt={3} textAlign="right">
-            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={closeAdd}>
+            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpenAddModal(false)}>
               Batal
             </Button>
             <Button
@@ -282,7 +611,7 @@ function TransaksiDP() {
           </Box>
         </Card>
       </Modal>
-      <Modal open={openPelunasanModal} onClose={closePelunasan}
+      <Modal open={openPelunasanModal} onClose={() => setOpenPelunasanModal(false)}
         sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
       >
         <Card
@@ -315,15 +644,37 @@ function TransaksiDP() {
                 </SoftTypography>
                 <SoftTypography>{selectedDP.kode_transaksi}</SoftTypography>
               </Box>
+              <Box display="flex" flexDirection="column" gap={1}>
+                <SoftTypography variant="caption" fontWeight="medium">
+                  Produk
+                </SoftTypography>
+                <SoftTypography>
+                  {selectedDP.nama_produk}
+                </SoftTypography>
+              </Box>
 
+              <Box display="flex" flexDirection="column" gap={1}>
+                <SoftTypography variant="caption" fontWeight="medium">
+                  Harga Produk
+                </SoftTypography>
+                <SoftTypography>
+                  {formatRupiah(selectedDP.harga_jual)}
+                </SoftTypography>
+              </Box>
               <Box display="flex" flexDirection="column" gap={1}>
                 <SoftTypography variant="caption" fontWeight="medium">
                   Nominal DP
                 </SoftTypography>
                 <SoftTypography>{selectedDP.nominal_dp}</SoftTypography>
               </Box>
-
-              {/* Input Pelunasan */}
+              <Box display="flex" flexDirection="column" gap={1}>
+                <SoftTypography variant="caption" fontWeight="medium">
+                  Keterangan
+                </SoftTypography>
+                <SoftTypography>
+                  {selectedDP.keterangan || "-"}
+                </SoftTypography>
+              </Box>
               <Box display="flex" flexDirection="column" gap={1} mt={2}>
                 <SoftTypography variant="caption" fontWeight="medium">
                   Sisa Pembayaran
@@ -338,11 +689,13 @@ function TransaksiDP() {
               </Box>
 
               <Box mt={3} textAlign="right">
-                <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={closePelunasan}>
+                <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpenPelunasanModal(false)}>
                   Batal
                 </Button>
-                <Button variant="contained" color="success" onClick={() => console.log("Pelunasan OK")}>
-                  Konfirmasi Pelunasan
+                <Button variant="contained" color="success" onClick={handlePelunasanSubmit}>
+                  <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                    Konfirmasi Pelunasan
+                  </SoftTypography>
                 </Button>
               </Box>
             </>

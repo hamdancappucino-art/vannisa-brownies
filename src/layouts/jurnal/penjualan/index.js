@@ -104,6 +104,22 @@ export default function LaporanPenjualan() {
       });
   }
 
+  function formatDate(dateString) {
+    if (!dateString) return "";
+
+    // handle format "YYYY-MM-DD HH:mm:ss"
+    if (dateString.includes(" ")) {
+      return dateString.split(" ")[0];
+    }
+
+    // handle format ISO
+    if (dateString.includes("T")) {
+      return dateString.split("T")[0];
+    }
+
+    return dateString;
+  }
+
   // BUILD TABLE ROWS (untuk ditampilkan di Soft UI Dashboard)
   const tableRows = data.map((row, index) => ({
     id_jurnal_penjualan: row.id_jurnal_penjualan,
@@ -111,7 +127,7 @@ export default function LaporanPenjualan() {
 
     tanggal: (
       <SoftTypography variant="caption" color="text">
-        {row.tanggal}
+        {formatDate(row.tanggal)}
       </SoftTypography>
     ),
     kode: (
@@ -136,7 +152,7 @@ export default function LaporanPenjualan() {
     ),
     created_at: (
       <SoftTypography variant="caption" color="text">
-        {row.created_at}
+        {formatDate(row.created_at)}  
       </SoftTypography>
     ),
 
@@ -145,7 +161,7 @@ export default function LaporanPenjualan() {
         <IconButton color="info" size="small" onClick={() => openEdit(index)}>
           <EditIcon />
         </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
+        <IconButton color="error" size="small" sx={{ color: "black !important" }} onClick={() => remove(index)}>
           <DeleteIcon />
         </IconButton>
       </SoftBox>
