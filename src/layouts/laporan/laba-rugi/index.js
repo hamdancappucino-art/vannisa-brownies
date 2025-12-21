@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import API from "api/api";
 
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -7,10 +8,8 @@ import Icon from "@mui/material/Icon";
 import TextField from "@mui/material/TextField";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
-
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 
 import SoftBox from "components/SoftBox";
 import SoftTypography from "components/SoftTypography";
@@ -22,11 +21,13 @@ import Table from "examples/Tables/Table";
 import laporanLabaRugiTable from "./data/labarugi";
 
 export default function LaporanLabaRugi() {
-  const { rows: initialRows, columns } = laporanLabaRugiTable;
+  const { columns } = laporanLabaRugiTable;
+  const [data, setData] = useState([]);
 
-  const [data, setData] = useState(initialRows);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // FORM
   const [form, setForm] = useState({
@@ -41,11 +42,43 @@ export default function LaporanLabaRugi() {
     created_at: "",
   });
 
-  // Open Edit
-  function openEdit(i) {
-    setEditingIndex(i);
-    setForm({ ...data[i] });
-    setOpen(true);
+  async function fetchData() {
+    try {
+      let url = "/laporan-laba-rugi";
+
+      if (startDate && endDate) {
+        url += `?start=${startDate}&end=${endDate}`;
+      }
+
+      const res = await API.get(url);
+      setData(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengambil laporan laba rugi");
+    }
+  }
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function generateLaporan() {
+    if (!startDate || !endDate) {
+      alert("Tanggal awal & akhir wajib diisi");
+      return;
+    }
+
+    try {
+      await API.get(
+        `/laporan-laba-rugi/generate?start=${startDate}&end=${endDate}`
+      );
+
+      await fetchData();
+      alert("Laporan laba rugi berhasil digenerate");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal generate laporan laba rugi");
+    }
   }
 
   // Save Edit
@@ -62,69 +95,75 @@ export default function LaporanLabaRugi() {
     setOpen(false);
   }
 
-  // DELETE
-  function remove(i) {
-    if (!confirm("Hapus data ini?")) return;
-    setData((prev) => prev.filter((_, idx) => idx !== i));
+  const sortedData = [...data].sort(
+    (a, b) => a.id_laporan - b.id_laporan
+  );
+
+  function formatDate(dateString) {
+    if (!dateString) return "";
+    if (dateString.includes("T")) return dateString.split("T")[0];
+    if (dateString.includes(" ")) return dateString.split(" ")[0];
+    return dateString;
   }
 
   // Build Table Rows
-  const tableRows = data.map((row, index) => ({
+  const tableRows = data.map((row) => ({
     id_laporan: <SoftTypography variant="caption">{row.id_laporan}</SoftTypography>,
 
     tanggal_awal: (
-      <SoftTypography variant="caption">{row.tanggal_awal}</SoftTypography>
+      <SoftTypography variant="caption">
+        {formatDate(row.tanggal_awal)}
+      </SoftTypography>
     ),
 
     tanggal_akhir: (
-      <SoftTypography variant="caption">{row.tanggal_akhir}</SoftTypography>
+      <SoftTypography variant="caption">
+        {formatDate(row.tanggal_akhir)}
+      </SoftTypography>
     ),
 
     total_pendapatan: (
       <SoftTypography variant="caption">
-        Rp{row.total_pendapatan.toLocaleString("id-ID")}
+        Rp{Number(row.total_pendapatan).toLocaleString("id-ID")}
       </SoftTypography>
     ),
 
     total_beban: (
       <SoftTypography variant="caption">
-        Rp{row.total_beban.toLocaleString("id-ID")}
+        Rp{Number(row.total_beban).toLocaleString("id-ID")}
       </SoftTypography>
     ),
 
     laba_kotor: (
       <SoftTypography variant="caption">
-        Rp{row.laba_kotor.toLocaleString("id-ID")}
+        Rp{Number(row.laba_kotor).toLocaleString("id-ID")}
       </SoftTypography>
     ),
 
     laba_bersih: (
       <SoftTypography
         variant="caption"
-        color={row.laba_bersih >= 0 ? "success" : "error"}
+        color={Number(row.laba_bersih) >= 0 ? "success" : "error"}
       >
-        Rp{row.laba_bersih.toLocaleString("id-ID")}
+        Rp{Math.abs(Number(row.laba_bersih)).toLocaleString("id-ID")}
       </SoftTypography>
     ),
 
     periode: <SoftTypography variant="caption">{row.periode}</SoftTypography>,
-    created_at: <SoftTypography variant="caption">{row.created_at}</SoftTypography>,
-
-    action: (
-      <SoftBox display="flex" justifyContent="center" gap={1}>
-        <IconButton color="info" size="small" onClick={() => openEdit(index)}>
-          <EditIcon />
-        </IconButton>
-        <IconButton color="error" size="small" onClick={() => remove(index)}>
-          <DeleteIcon />
-        </IconButton>
-      </SoftBox>
-    ),
+    created_at: <SoftTypography variant="caption">{formatDate(row.created_at)}</SoftTypography>,
   }));
 
   // Summary Perhitungan
-  const totalPendapatan = data.reduce((sum, r) => sum + r.total_pendapatan, 0);
-  const totalBeban = data.reduce((sum, r) => sum + r.total_beban, 0);
+  const totalPendapatan = data.reduce(
+    (sum, r) => sum + Number(r.total_pendapatan),
+    0
+  );
+
+  const totalBeban = data.reduce(
+    (sum, r) => sum + Number(r.total_beban),
+    0
+  );
+
   const labaBersih = totalPendapatan - totalBeban;
 
   return (
@@ -141,17 +180,25 @@ export default function LaporanLabaRugi() {
 
                 <Grid container spacing={2} mt={1.5} mb={2}>
                   <Grid item xs={12} md={3}>
-                    <SoftTypography fontSize="14px" fontWeight="medium">
-                      Tanggal Awal
-                    </SoftTypography>
-                    <TextField type="date" fullWidth size="medium" />
+                    <SoftTypography fontSize="14px">Tanggal Awal</SoftTypography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      size="medium"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
                   </Grid>
 
                   <Grid item xs={12} md={3}>
-                    <SoftTypography fontSize="14px" fontWeight="medium">
-                      Tanggal Akhir
-                    </SoftTypography>
-                    <TextField type="date" fullWidth size="medium" />
+                    <SoftTypography fontSize="14px">Tanggal Akhir</SoftTypography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      size="medium"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
                   </Grid>
 
                   <Grid item xs={12} md={1.5}>
@@ -165,6 +212,18 @@ export default function LaporanLabaRugi() {
                       <SoftTypography fontSize="13px" color="white">
                         Tampilkan
                       </SoftTypography>
+                    </Button>
+                  </Grid>
+
+                  <Grid item xs={12} md={4} sx={{ display: "flex", justifyContent: "flex-end", mt: { xs: 2, md: 2 }, gap: 4 }}>
+                    <Button variant="contained" color="success" onClick={generateLaporan}>
+                      <AutorenewIcon sx={{ mr: 1 }} />
+                      <SoftTypography fontSize="13px" color="black">Generate</SoftTypography>
+                    </Button>
+
+                    <Button variant="contained" color="error">
+                      <PictureAsPdfIcon sx={{ mr: 1 }} />
+                      <SoftTypography fontSize="13px" color="black">Export PDF</SoftTypography>
                     </Button>
                   </Grid>
                 </Grid>
@@ -182,7 +241,7 @@ export default function LaporanLabaRugi() {
                 }}
               >
                 <Table
-                  columns={[...columns, { name: "action", align: "center", label: "Aksi" }]}
+                  columns={columns}
                   rows={tableRows}
                 />
               </SoftBox>
@@ -210,7 +269,9 @@ export default function LaporanLabaRugi() {
                   color={labaBersih >= 0 ? "success" : "error"}
                   mt={1}
                 >
-                  <b>Laba Bersih:</b> Rp{labaBersih.toLocaleString("id-ID")}
+                  <b>Laba Bersih:</b>{" "}
+                  Rp{Math.abs(labaBersih).toLocaleString("id-ID")}
+                  {labaBersih < 0}
                 </SoftTypography>
               </SoftBox>
             </Card>

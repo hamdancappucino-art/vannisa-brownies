@@ -94,6 +94,22 @@ export default function JurnalDP() {
     }
   }
 
+  function formatDate(dateString) {
+    if (!dateString) return "";
+
+    // handle format "YYYY-MM-DD HH:mm:ss"
+    if (dateString.includes(" ")) {
+      return dateString.split(" ")[0];
+    }
+
+    // handle format ISO
+    if (dateString.includes("T")) {
+      return dateString.split("T")[0];
+    }
+
+    return dateString;
+  }
+
   /* =======================
    * TABLE RENDER
    * ======================= */
@@ -105,7 +121,7 @@ export default function JurnalDP() {
       <SoftTypography variant="caption">{row.id_dp}</SoftTypography>
     ),
     tanggal: (
-      <SoftTypography variant="caption">{row.tanggal}</SoftTypography>
+      <SoftTypography variant="caption">{formatDate(row.tanggal)}</SoftTypography>
     ),
     kode: (
       <SoftTypography variant="caption">{row.kode}</SoftTypography>
