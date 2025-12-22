@@ -16,6 +16,7 @@ import SoftTypography from "components/SoftTypography";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
+import CustomDialog from "components/CustomDialog";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "examples/Tables/Table";
@@ -53,6 +54,22 @@ function UserManagement() {
     role: "",
     is_active: true,
   });
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "success",
+  });
+
+  const showDialog = ({ title, subtitle = "", type = "success" }) => {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+    });
+  };
 
   const indexOfLastRow = page * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
@@ -127,27 +144,56 @@ function UserManagement() {
     setSubmitted(true);
 
     const requiredFields = ["username", "password", "nama_lengkap", "email", "no_telp", "role"];
-
     const emptyField = requiredFields.find(
       (key) => !form[key] || form[key].toString().trim() === ""
     );
-
     if (emptyField) return;
 
     const pwdError = validatePassword(form.password);
     if (pwdError) return;
 
+    // ✅ PAYLOAD DIDEFINISIKAN
+    const payload = {
+      username: form.username,
+      password: form.password,
+      nama_lengkap: form.nama_lengkap,
+      email: form.email,
+      no_telp: form.no_telp,
+      role: form.role,
+      is_active: form.is_active ? 1 : 0,
+    };
+
     try {
+      // ✅ DETEKSI EDIT / ADD
       if (editIndex !== null) {
         const id = data[editIndex].id;
-        await API.put(`/users/${id}`, form);
+        await API.put(`/users/${id}`, payload);
+
+        showDialog({
+          title: "Berhasil",
+          subtitle: "Data user berhasil diperbarui",
+          type: "success",
+        });
       } else {
-        await API.post("/users", form);
+        await API.post("/users", payload);
+
+        showDialog({
+          title: "Berhasil",
+          subtitle: "User baru berhasil ditambahkan",
+          type: "success",
+        });
       }
+
       fetchUsers();
       setOpen(false);
     } catch (err) {
-      console.error("Error saving user:", err);
+      console.error("SAVE ERROR:", err);
+
+      showDialog({
+        title: "Gagal",
+        subtitle: "Terjadi kesalahan saat menyimpan data",
+        type: "error",
+      });
     }
   };
 
@@ -155,9 +201,20 @@ function UserManagement() {
     try {
       const id = data[globalIndex].id;
       await API.delete(`/users/${id}`);
+
       fetchUsers();
+
+      showDialog({
+        title: "Berhasil",
+        subtitle: "User berhasil dihapus",
+        type: "success",
+      });
     } catch (err) {
-      console.error("Error deleting user:", err);
+      showDialog({
+        title: "Gagal",
+        subtitle: "Tidak dapat menghapus user",
+        type: "error",
+      });
     }
   };
 
@@ -390,6 +447,13 @@ function UserManagement() {
           </Box>
         </Box>
       </Modal>
+      <CustomDialog
+        open={dialog.open}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+        onClose={() => setDialog({ ...dialog, open: false })}
+      />
     </DashboardLayout>
   );
 }

@@ -22,6 +22,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "examples/Tables/Table";
 import Footer from "examples/Footer";
+import CustomDialog from "components/CustomDialog";
 
 function MasterPelanggan() {
   const [rows, setRows] = useState([]);
@@ -43,6 +44,14 @@ function MasterPelanggan() {
     email: "",
   });
 
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "error",
+    onConfirm: null,
+  });
+
   const columns = [
     { name: "id_pelanggan", label: "No", align: "center" },
     { name: "nama", label: "Nama Pelanggan", align: "center" },
@@ -53,6 +62,15 @@ function MasterPelanggan() {
     { name: "aksi", label: "Aksi", align: "center" },
   ];
 
+  function showDialog(title, subtitle, type = "error", onConfirm = null) {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+      onConfirm,
+    });
+  }
   const fetchData = async () => {
     try {
       const res = await API.get("/pelanggan");
@@ -87,36 +105,82 @@ function MasterPelanggan() {
     setOpen(true);
   };
 
-  const remove = async (id) => {
-    const conf = window.confirm("Yakin ingin menghapus?");
-    if (!conf) return;
-
-    try {
-      await API.delete(`/pelanggan/${id}`);
-      fetchData(); // 🔥 pakai fetchData, bukan getPelanggan
-    } catch (error) {
-      console.error("Delete error:", error);
+  function validateForm() {
+    if (!formData.nama.trim()) {
+      showDialog("Validasi Gagal", "Nama pelanggan wajib diisi");
+      return false;
     }
+
+    if (!formData.alamat.trim()) {
+      showDialog("Validasi Gagal", "Alamat wajib diisi");
+      return false;
+    }
+
+    if (!formData.no_telp.trim()) {
+      showDialog("Validasi Gagal", "Nomor telepon wajib diisi");
+      return false;
+    }
+
+    if (!/^[0-9]+$/.test(formData.no_telp)) {
+      showDialog("Validasi Gagal", "Nomor telepon hanya boleh angka");
+      return false;
+    }
+
+    if (!formData.email.trim()) {
+      showDialog("Validasi Gagal", "Email wajib diisi");
+      return false;
+    }
+
+    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(formData.email)) {
+      showDialog(
+        "Validasi Gagal",
+        "Email harus menggunakan domain @gmail.com"
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  const remove = (id) => {
+    showDialog(
+      "Hapus Data",
+      "Yakin ingin menghapus data pelanggan ini?",
+      "warning",
+      async () => {
+        try {
+          await API.delete(`/pelanggan/${id}`);
+          fetchData();
+          showDialog("Berhasil", "Data pelanggan berhasil dihapus", "success");
+        } catch (error) {
+          console.error("Delete error:", error);
+          showDialog("Gagal", "Data pelanggan gagal dihapus");
+        }
+      }
+    );
   };
 
   const save = async () => {
-    if (!formData.nama || !formData.alamat || !formData.no_telp) {
-      alert("Semua field wajib diisi!");
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       if (editId) {
         await API.put(`/pelanggan/${editId}`, formData);
+        showDialog("Berhasil", "Data pelanggan berhasil diperbarui", "success");
       } else {
         await API.post("/pelanggan", formData);
+        showDialog("Berhasil", "Data pelanggan berhasil ditambahkan", "success");
       }
 
       setOpen(false);
       setFormData({ nama: "", alamat: "", no_telp: "", email: "" });
-      fetchData(); // 🔥 pakai fetchData
+      fetchData();
     } catch (error) {
       console.error("Submit error:", error);
+      showDialog(
+        "Gagal Menyimpan",
+        error.response?.data?.message || "Terjadi kesalahan pada server"
+      );
     }
   };
 
@@ -318,8 +382,17 @@ function MasterPelanggan() {
           </Box>
         </Box>
       </Modal>
-
       <Footer />
+      <CustomDialog
+        open={dialog.open}
+        onClose={() => {
+          setDialog({ ...dialog, open: false });
+          if (dialog.onConfirm) dialog.onConfirm();
+        }}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+      />
     </DashboardLayout>
   );
 }

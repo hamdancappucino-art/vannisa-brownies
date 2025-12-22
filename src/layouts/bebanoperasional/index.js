@@ -24,6 +24,7 @@ import AddIcon from "@mui/icons-material/Add";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import Footer from "examples/Footer";
+import CustomDialog from "components/CustomDialog";
 
 import Table from "examples/Tables/Table";
 
@@ -45,6 +46,48 @@ export default function BebanOperasional() {
   const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
   const totalPages = Math.max(1, Math.ceil(data.length / rowsPerPage));
 
+  const [errors, setErrors] = useState({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "success",
+  });
+
+  const showDialog = (title, subtitle, type = "error") => {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+    });
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.jenis_beban.trim()) {
+      newErrors.jenis_beban = "Jenis beban wajib diisi";
+    }
+
+    if (!form.kode_akun) {
+      newErrors.kode_akun = "Kode akun wajib dipilih";
+    }
+
+    if (!form.nominal || Number(form.nominal) <= 0) {
+      newErrors.nominal = "Nominal harus lebih dari 0";
+    }
+
+    if (!form.tanggal_beban) {
+      newErrors.tanggal_beban = "Tanggal beban wajib diisi";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   React.useEffect(() => {
     const u = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -61,7 +104,11 @@ export default function BebanOperasional() {
   async function fetchBeban() {
     try {
       const res = await API.get("/beban");
-      setData(res.data);
+
+      // SORT ASCENDING BY ID
+      const sortedData = res.data.sort((a, b) => a.id - b.id);
+
+      setData(sortedData);
       setPage(1);
     } catch (err) {
       console.error(err);
@@ -106,6 +153,9 @@ export default function BebanOperasional() {
 
   function openAdd() {
     setEditingIndex(null);
+    setIsSubmitted(false);
+    setErrors({});
+
     setForm({
       jenis_beban: "",
       kode_akun: "",
@@ -141,7 +191,7 @@ export default function BebanOperasional() {
       setOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Gagal menambah data");
+      showDialog("Gagal", "Terjadi kesalahan saat menyimpan data", "error");
     }
   }
 
@@ -159,11 +209,18 @@ export default function BebanOperasional() {
       setOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Gagal mengubah data");
+      showDialog("Gagal", "Terjadi kesalahan saat menyimpan data", "error");
     }
   }
 
   function save() {
+    setIsSubmitted(true);
+
+    if (!validateForm()) {
+      showDialog("Validasi Gagal", "Periksa kembali input beban", "warning");
+      return;
+    }
+
     if (editingIndex === null) {
       createData();
     } else {
@@ -182,7 +239,7 @@ export default function BebanOperasional() {
       fetchBeban();
     } catch (err) {
       console.error(err);
-      alert("Gagal menghapus data");
+      showDialog("Gagal", "Terjadi kesalahan saat menghapus data", "error");
     }
   }
 
@@ -325,7 +382,11 @@ export default function BebanOperasional() {
 
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          setErrors({});
+          setIsSubmitted(false);
+        }}
         sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
       >
         <Box
@@ -351,6 +412,8 @@ export default function BebanOperasional() {
               fullWidth
               variant="outlined"
               value={form.jenis_beban}
+              error={isSubmitted && !!errors.jenis_beban}
+              helperText={isSubmitted ? errors.jenis_beban : ""}
               onChange={(e) => setForm({ ...form, jenis_beban: e.target.value })}
               sx={{
                 "& .MuiOutlinedInput-input": {
@@ -411,6 +474,11 @@ export default function BebanOperasional() {
                   color: "black",
                 }} />
             </div>
+            {isSubmitted && errors.kode_akun && (
+              <SoftTypography variant="caption" color="error">
+                {errors.kode_akun}
+              </SoftTypography>
+            )}
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
@@ -421,6 +489,8 @@ export default function BebanOperasional() {
               fullWidth
               variant="outlined"
               value={form.nominal}
+              error={isSubmitted && !!errors.nominal}
+              helperText={isSubmitted ? errors.nominal : ""}
               onChange={(e) => setForm({ ...form, nominal: e.target.value })}
               sx={{
                 "& .MuiOutlinedInput-input": {
@@ -504,6 +574,11 @@ export default function BebanOperasional() {
                 `}
               </style>
             </div>
+            {isSubmitted && errors.tanggal_beban && (
+              <SoftTypography variant="caption" color="error">
+                {errors.tanggal_beban}
+              </SoftTypography>
+            )}
           </Box>
 
           <Box display="flex" flexDirection="column" gap={1}>
@@ -545,8 +620,14 @@ export default function BebanOperasional() {
           </Box>
         </Box>
       </Modal>
-
       <Footer />
+      <CustomDialog
+        open={dialog.open}
+        onClose={() => setDialog({ ...dialog, open: false })}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+      />
     </DashboardLayout>
   );
 }

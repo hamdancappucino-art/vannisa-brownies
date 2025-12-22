@@ -10,6 +10,8 @@ import SoftBox from "components/SoftBox";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Footer from "examples/Footer";
+import CustomDialog from "components/CustomDialog";
+
 import Table from "examples/Tables/Table";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
@@ -27,6 +29,17 @@ export default function MasterProduk() {
   const [detailProduk, setDetailProduk] = useState(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "error",
+  });
+
+  function showDialog(title, subtitle, type = "error") {
+    setDialog({ open: true, title, subtitle, type });
+  }
 
   const indexOfLastRow = page * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
@@ -73,27 +86,49 @@ export default function MasterProduk() {
     fetchProduk();
   }, []);
 
-  function generateIDProduk(arr) {
-    if (!arr || arr.length === 0) return "PRD-001";
+  function formatIDProduk(id) {
+    return `PRD-${String(id).padStart(3, "0")}`;
+  }
 
-    const lastId = arr[arr.length - 1].id_produk;
-    const next = Number(lastId) + 1;
+  function validateForm() {
+    if (!form.nama_produk.trim()) {
+      showDialog("Validasi Gagal", "Nama produk wajib diisi");
+      return false;
+    }
 
-    return `PRD-${String(next).padStart(3, "0")}`;
+    if (!form.kategori) {
+      showDialog("Validasi Gagal", "Kategori wajib dipilih");
+      return false;
+    }
+
+    if (!form.harga_jual || Number(form.harga_jual) <= 0) {
+      showDialog("Validasi Gagal", "Harga jual harus lebih dari 0");
+      return false;
+    }
+
+    if (form.stok === "" || Number(form.stok) < 0) {
+      showDialog("Validasi Gagal", "Stok tidak boleh kosong atau negatif");
+      return false;
+    }
+
+    if (!form.satuan) {
+      showDialog("Validasi Gagal", "Satuan wajib dipilih");
+      return false;
+    }
+
+    return true;
   }
 
   function openAdd() {
     setEditingItem(null);
 
     setForm({
-      id_produk: generateIDProduk(data),
+      id_produk: formatIDProduk(data.length ? data[data.length - 1].id_produk + 1 : 1),
       nama_produk: "",
       kategori: "",
       harga_jual: "",
       stok: "",
       satuan: "",
-      created_at: formatDate(new Date()),
-      updated_at: "",
     });
 
     setOpen(true);
@@ -101,12 +136,12 @@ export default function MasterProduk() {
 
   function openEdit(item) {
     setEditingItem(item);
+
     setForm({
       ...item,
-      id_produk: `PRD-${String(item.id_produk).padStart(3, "0")}`,
-      created_at: formatDate(item.created_at),
-      updated_at: formatDate(item.updated_at),
+      id_produk: formatIDProduk(item.id_produk),
     });
+
     setOpen(true);
   }
 
@@ -121,10 +156,7 @@ export default function MasterProduk() {
   }
 
   async function save() {
-    if (!form.nama_produk) {
-      alert("Nama produk wajib diisi");
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       if (editingItem === null) {
@@ -132,27 +164,38 @@ export default function MasterProduk() {
         delete payload.id_produk;
 
         await API.post("/produk", payload);
+        showDialog("Berhasil", "Produk berhasil ditambahkan", "success");
       } else {
-        await API.put(`/produk/${editingItem.id_produk}`, form);
+        const payload = { ...form };
+        delete payload.id_produk; // 🔥 WAJIB
+
+        await API.put(`/produk/${editingItem.id_produk}`, payload);
+        showDialog("Berhasil", "Produk berhasil diperbarui", "success");
       }
 
       fetchProduk();
       setOpen(false);
     } catch (err) {
-      console.error("Gagal menyimpan produk:", err);
-      alert("Error saat menyimpan data");
+      console.error(err);
+      showDialog("Gagal", "Terjadi kesalahan saat menyimpan data");
     }
   }
 
   async function remove(item) {
-    if (!window.confirm("Hapus produk ini?")) return;
-
-    try {
-      await API.delete(`/produk/${item.id_produk}`);
-      fetchProduk();
-    } catch (err) {
-      console.error("Gagal hapus produk:", err);
-    }
+    setDialog({
+      open: true,
+      title: "Hapus Produk?",
+      subtitle: `Yakin ingin menghapus ${item.nama_produk}?`,
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          await API.delete(`/produk/${item.id_produk}`);
+          fetchProduk();
+        } catch (err) {
+          showDialog("Gagal", "Produk tidak bisa dihapus");
+        }
+      },
+    });
   }
 
   const tableRows = currentRows.map((row) => ({
@@ -163,7 +206,7 @@ export default function MasterProduk() {
         style={{ cursor: "pointer" }}
         onClick={() => openDetailPopup(row)}
       >
-        {`PRD-${String(row.id_produk).padStart(3, "0")}`}
+        {formatIDProduk(row.id_produk)}
       </SoftTypography>
     ),
     nama_produk: row.nama_produk,
@@ -436,6 +479,13 @@ export default function MasterProduk() {
       </Modal>
 
       <Footer />
+      <CustomDialog
+        open={dialog.open}
+        onClose={() => setDialog({ ...dialog, open: false })}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+      />
     </DashboardLayout>
   );
 }

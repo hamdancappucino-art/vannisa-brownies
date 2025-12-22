@@ -24,10 +24,10 @@ export default function LaporanLabaRugi() {
   const { columns } = laporanLabaRugiTable;
   const [data, setData] = useState([]);
 
-  const [open, setOpen] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
 
   // FORM
   const [form, setForm] = useState({
@@ -60,7 +60,8 @@ export default function LaporanLabaRugi() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    setPage(1);
+  }, [startDate, endDate]);
 
   async function generateLaporan() {
     if (!startDate || !endDate) {
@@ -81,20 +82,6 @@ export default function LaporanLabaRugi() {
     }
   }
 
-  // Save Edit
-  function save() {
-    const updated = [...data];
-    updated[editingIndex] = {
-      ...form,
-      total_pendapatan: Number(form.total_pendapatan),
-      total_beban: Number(form.total_beban),
-      laba_kotor: Number(form.total_pendapatan) - Number(form.total_beban),
-      laba_bersih: Number(form.total_pendapatan) - Number(form.total_beban),
-    };
-    setData(updated);
-    setOpen(false);
-  }
-
   const sortedData = [...data].sort(
     (a, b) => a.id_laporan - b.id_laporan
   );
@@ -106,8 +93,15 @@ export default function LaporanLabaRugi() {
     return dateString;
   }
 
+  // PAGINATION
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = sortedData.slice(indexOfFirstRow, indexOfLastRow);
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
+
   // Build Table Rows
-  const tableRows = data.map((row) => ({
+  const tableRows = currentRows.map((row) => ({
     id_laporan: <SoftTypography variant="caption">{row.id_laporan}</SoftTypography>,
 
     tanggal_awal: (
@@ -154,12 +148,12 @@ export default function LaporanLabaRugi() {
   }));
 
   // Summary Perhitungan
-  const totalPendapatan = data.reduce(
+  const totalPendapatan = sortedData.reduce(
     (sum, r) => sum + Number(r.total_pendapatan),
     0
   );
 
-  const totalBeban = data.reduce(
+  const totalBeban = sortedData.reduce(
     (sum, r) => sum + Number(r.total_beban),
     0
   );
@@ -187,6 +181,18 @@ export default function LaporanLabaRugi() {
                       size="medium"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-input": {
+                          maxWidth: "100% !important",
+                          width: "100% !important",
+                          minWidth: "100% !important",
+                          flex: "1 1 auto !important",
+                          display: "block !important",
+                          overflow: "visible !important",
+                          textOverflow: "clip !important",
+                          whiteSpace: "normal !important",
+                        }
+                      }}
                     />
                   </Grid>
 
@@ -198,6 +204,18 @@ export default function LaporanLabaRugi() {
                       size="medium"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-input": {
+                          maxWidth: "100% !important",
+                          width: "100% !important",
+                          minWidth: "100% !important",
+                          flex: "1 1 auto !important",
+                          display: "block !important",
+                          overflow: "visible !important",
+                          textOverflow: "clip !important",
+                          whiteSpace: "normal !important",
+                        }
+                      }}
                     />
                   </Grid>
 
@@ -207,6 +225,10 @@ export default function LaporanLabaRugi() {
                       color="primary"
                       fullWidth
                       sx={{ mt: { xs: 4, md: 2.5 } }}
+                      onClick={() => {
+                        setPage(1);
+                        fetchData();
+                      }}
                     >
                       <Icon sx={{ mr: 1, color: "white !important" }}>search</Icon>
                       <SoftTypography fontSize="13px" color="white">
@@ -221,10 +243,10 @@ export default function LaporanLabaRugi() {
                       <SoftTypography fontSize="13px" color="black">Generate</SoftTypography>
                     </Button>
 
-                    <Button variant="contained" color="error">
+                    {/* <Button variant="contained" color="error">
                       <PictureAsPdfIcon sx={{ mr: 1 }} />
                       <SoftTypography fontSize="13px" color="black">Export PDF</SoftTypography>
-                    </Button>
+                    </Button> */}
                   </Grid>
                 </Grid>
               </SoftBox>
@@ -244,6 +266,37 @@ export default function LaporanLabaRugi() {
                   columns={columns}
                   rows={tableRows}
                 />
+                <SoftBox
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  p={2}
+                  gap={2}
+                >
+                  <Button
+                    variant="outlined"
+                    disabled={page === 1 || sortedData.length === 0}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {totalPages}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === totalPages || sortedData.length === 0}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>
@@ -278,47 +331,6 @@ export default function LaporanLabaRugi() {
           </Grid>
         </Grid>
       </SoftBox>
-
-      {/* MODAL EDIT */}
-      <Modal open={open} onClose={() => setOpen(false)}>
-        <Box
-          sx={{
-            width: 500,
-            p: 3,
-            bgcolor: "background.paper",
-            mx: "auto",
-            mt: "10vh",
-            borderRadius: 1,
-          }}
-        >
-          <SoftTypography variant="h6" mb={2}>
-            Edit Laporan Laba Rugi
-          </SoftTypography>
-
-          {Object.keys(form).map((f) => (
-            <Box key={f} mb={2}>
-              <SoftTypography variant="caption">{f.toUpperCase()}</SoftTypography>
-
-              <TextField
-                fullWidth
-                type={f.includes("tanggal") ? "date" : "text"}
-                value={form[f]}
-                onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-              />
-            </Box>
-          ))}
-
-          <Box mt={3} textAlign="right">
-            <Button onClick={() => setOpen(false)} sx={{ color: "red", mr: 2 }}>
-              Batal
-            </Button>
-            <Button variant="contained" color="info" onClick={save}>
-              Simpan
-            </Button>
-          </Box>
-        </Box>
-      </Modal>
-
       <Footer />
     </DashboardLayout>
   );

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import axios from "axios";
 import API from "api/api";
 
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -13,6 +12,7 @@ import Icon from "@mui/material/Icon";
 import SoftBox from "components/SoftBox";
 import SoftTypography from "components/SoftTypography";
 import Table from "examples/Tables/Table";
+import CustomDialog from "components/CustomDialog";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -20,9 +20,6 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 // DATA TABLE HEADER
 import laporanBebanTableData from "./data/beban";
-
-const API_JURNAL = "http://localhost:5000/api/jurnal-beban";
-const API_BEBAN = "http://localhost:5000/api/beban";
 
 export default function Beban() {
   const { columns } = laporanBebanTableData;
@@ -34,8 +31,53 @@ export default function Beban() {
   const [akhir, setAkhir] = useState("");
 
   const token = localStorage.getItem("token");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
 
-  // LOAD DATA + FILTER
+  const [errors, setErrors] = useState({});
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "success",
+  });
+
+  const showDialog = ({ title, subtitle = "", type = "success" }) => {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+    });
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.tanggal) {
+      newErrors.tanggal = "Tanggal wajib diisi";
+    }
+
+    if (!form.kode?.trim()) {
+      newErrors.kode = "Kode wajib diisi";
+    }
+
+    if (!form.nominal || Number(form.nominal) <= 0) {
+      newErrors.nominal = "Nominal harus lebih dari 0";
+    }
+
+    if (!form.tipe_balance) {
+      newErrors.tipe_balance = "Tipe balance wajib dipilih";
+    }
+
+    if (!form.keterangan?.trim()) {
+      newErrors.keterangan = "Keterangan wajib diisi";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   async function loadData(from = "", to = "") {
     try {
       const res = await API.get("/jurnal-beban");
@@ -46,10 +88,8 @@ export default function Beban() {
         return;
       }
 
-      // Convert full data first
       let filtered = [...json];
 
-      // Kalau ada filter → filter manual di FE
       if (from && to) {
         filtered = filtered.filter((row) => {
           const rowDate = new Date(row.tanggal).toISOString().split("T")[0];
@@ -70,7 +110,7 @@ export default function Beban() {
 
   useEffect(() => {
     loadData(awal, akhir);
-  }, []);
+  }, [awal, akhir]);
 
   function formatDate(dateString) {
     if (!dateString) return "";
@@ -88,45 +128,69 @@ export default function Beban() {
   });
 
   // OPEN MODAL EDIT
-  function openEdit(i) {
-    setEditingIndex(i);
-    setForm({ ...data[i], tanggal: formatDate(data[i].tanggal) });
+  function openEditById(id) {
+    const found = data.find((d) => d.id_jurnal_beban === id);
+    if (!found) return;
+
+    setForm({ ...found, tanggal: formatDate(found.tanggal) });
     setOpen(true);
   }
 
   // SAVE EDIT
   async function save() {
+    if (!validateForm()) return;
+
     try {
       const id = form.id_jurnal_beban;
 
-      const res = await API.put(`/jurnal-beban/${id}`, {
+      await API.put(`/jurnal-beban/${id}`, {
         tanggal: form.tanggal,
         kode: form.kode,
-        nominal: form.nominal,
+        nominal: Number(form.nominal),
         tipe_balance: form.tipe_balance,
         keterangan: form.keterangan,
       });
 
       await loadData(awal, akhir);
       setOpen(false);
+      setErrors({});
 
+      showDialog({
+        title: "Berhasil",
+        subtitle: "Data jurnal beban berhasil diperbarui",
+        type: "success",
+      });
     } catch (err) {
       console.error("UPDATE ERROR:", err.response?.data || err.message);
-      alert("Update gagal: " + (err.response?.data?.message || err.message));
+
+      showDialog({
+        title: "Gagal",
+        subtitle: err.response?.data?.message || "Terjadi kesalahan saat menyimpan data",
+        type: "error",
+      });
     }
   }
 
-
   // DELETE JURNAL
-  async function remove(i) {
-    const item = data[i];
+  async function remove(id) {
     if (!confirm("Hapus jurnal ini?")) return;
 
     try {
-      await API.delete(`/jurnal-beban/${item.id_jurnal_beban}`);
-      loadData(awal, akhir);
+      await API.delete(`/jurnal-beban/${id}`);
+      await loadData(awal, akhir);
+
+      showDialog({
+        title: "Berhasil",
+        subtitle: "Data jurnal beban berhasil dihapus",
+        type: "success",
+      });
     } catch (err) {
-      alert("Gagal menghapus jurnal");
+      console.error(err);
+      showDialog({
+        title: "Gagal",
+        subtitle: "Gagal menghapus jurnal",
+        type: "error",
+      });
     }
   }
 
@@ -135,10 +199,21 @@ export default function Beban() {
     loadData(awal, akhir);
   }
 
+  const closeModal = () => {
+    setOpen(false);
+    setErrors({});
+  };
+
+  // PAGINATION
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.max(1, Math.ceil(data.length / rowsPerPage));
+
   // RENDER ROWS
   const tableRows = useMemo(
     () =>
-      data.map((row, index) => ({
+      currentRows.map((row, index) => ({
         id_jurnal_beban: <SoftTypography variant="caption">{row.id_jurnal_beban}</SoftTypography>,
         id_beban: <SoftTypography variant="caption">{row.id_beban}</SoftTypography>,
         tanggal: (
@@ -158,16 +233,20 @@ export default function Beban() {
 
         aksi: (
           <SoftBox display="flex" justifyContent="center" gap={1}>
-            <IconButton color="info" size="small" onClick={() => openEdit(index)}>
+            <IconButton
+              color="info"
+              size="small"
+              onClick={() => openEditById(row.id_jurnal_beban)}
+            >
               <EditIcon />
             </IconButton>
-            <IconButton color="error" size="small" onClick={() => remove(index)}>
+            <IconButton color="error" size="small" onClick={() => remove(row.id_jurnal_beban)}>
               <DeleteIcon />
             </IconButton>
           </SoftBox>
         ),
       })),
-    [data]
+    [currentRows]
   );
 
   const columnsFix = useMemo(
@@ -195,6 +274,18 @@ export default function Beban() {
                       fullWidth
                       value={awal}
                       onChange={(e) => setAwal(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-input": {
+                          maxWidth: "100% !important",
+                          width: "100% !important",
+                          minWidth: "100% !important",
+                          flex: "1 1 auto !important",
+                          display: "block !important",
+                          overflow: "visible !important",
+                          textOverflow: "clip !important",
+                          whiteSpace: "normal !important",
+                        }
+                      }}
                     />
                   </Grid>
 
@@ -205,6 +296,18 @@ export default function Beban() {
                       fullWidth
                       value={akhir}
                       onChange={(e) => setAkhir(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-input": {
+                          maxWidth: "100% !important",
+                          width: "100% !important",
+                          minWidth: "100% !important",
+                          flex: "1 1 auto !important",
+                          display: "block !important",
+                          overflow: "visible !important",
+                          textOverflow: "clip !important",
+                          whiteSpace: "normal !important",
+                        }
+                      }}
                     />
                   </Grid>
 
@@ -228,6 +331,37 @@ export default function Beban() {
               {/* TABLE */}
               <SoftBox>
                 <Table columns={columnsFix} rows={tableRows} />
+                <SoftBox
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  p={2}
+                  gap={2}
+                >
+                  <Button
+                    variant="outlined"
+                    disabled={page === 1 || data.length === 0}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {totalPages}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === totalPages || data.length === 0}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>
@@ -286,6 +420,18 @@ export default function Beban() {
                   type={field === "tanggal" ? "date" : "text"}
                   value={form[field] || ""}
                   onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                  sx={{
+                    "& .MuiOutlinedInput-input": {
+                      maxWidth: "100% !important",
+                      width: "100% !important",
+                      minWidth: "100% !important",
+                      flex: "1 1 auto !important",
+                      display: "block !important",
+                      overflow: "visible !important",
+                      textOverflow: "clip !important",
+                      whiteSpace: "normal !important",
+                    }
+                  }}
                 />
               </Box>
             )
@@ -329,6 +475,11 @@ export default function Beban() {
                 <option value="debit">Debit</option>
                 <option value="kredit">Kredit</option>
               </select>
+              {errors.tipe_balance && (
+                <SoftTypography color="error" fontSize="12px" mt={0.5}>
+                  {errors.tipe_balance}
+                </SoftTypography>
+              )}
 
               <KeyboardArrowDownIcon
                 style={{
@@ -344,7 +495,7 @@ export default function Beban() {
           </Box>
 
           <Box mt={3} textAlign="right">
-            <Button onClick={() => setOpen(false)} sx={{ color: "red", mr: 2 }}>
+            <Button onClick={closeModal} sx={{ color: "red", mr: 2 }}>
               Batal
             </Button>
             <Button variant="contained" color="info" onClick={save}>
@@ -353,8 +504,14 @@ export default function Beban() {
           </Box>
         </Box>
       </Modal>
-
       <Footer />
+      <CustomDialog
+        open={dialog.open}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+        onClose={() => setDialog({ ...dialog, open: false })}
+      />
     </DashboardLayout>
   );
 }

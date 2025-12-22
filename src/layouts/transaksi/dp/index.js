@@ -18,6 +18,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import Table from "examples/Tables/Table";
 import tableDataDownPayment from "./data/downpayment";
+import CustomDialog from "components/CustomDialog";
 
 function TransaksiDP() {
   const { columns } = tableDataDownPayment;
@@ -29,18 +30,36 @@ function TransaksiDP() {
   const [keyword, setKeyword] = useState("");
   const user = JSON.parse(localStorage.getItem("user"));
   const username = user?.username || "admin";
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
+  const [errors, setErrors] = useState({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "success",
+  });
+
+  const showDialog = (title, subtitle, type = "error") => {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+    });
+  };
 
   // ================= FETCH =================
   const fetchDP = async () => {
     const res = await API.get("/dp");
 
-    const sorted = res.data.sort(
-      (a, b) => new Date(a.tanggal_dp) - new Date(b.tanggal_dp)
-    );
+    const sorted = res.data.sort((a, b) => a.id - b.id);
 
     const data = sorted.map((item, index) => ({
-      no: index + 1,
-      ...item
+      id: index + 1,
+      ...item,
     }));
 
     setRows(data);
@@ -62,6 +81,38 @@ function TransaksiDP() {
     fetchPelanggan();
     fetchProduk();
   }, []);
+
+  const validateDP = () => {
+    const newErrors = {};
+
+    if (!newDP.id_pelanggan) {
+      newErrors.id_pelanggan = "Pelanggan wajib dipilih";
+    }
+
+    if (!newDP.id_produk) {
+      newErrors.id_produk = "Produk wajib dipilih";
+    }
+
+    if (!newDP.tanggal_dp) {
+      newErrors.tanggal_dp = "Tanggal DP wajib diisi";
+    }
+
+    if (!newDP.jumlah_barang || newDP.jumlah_barang <= 0) {
+      newErrors.jumlah_barang = "Jumlah barang harus lebih dari 0";
+    }
+
+    if (!newDP.nominal_dp || Number(newDP.nominal_dp) <= 0) {
+      newErrors.nominal_dp = "Nominal DP wajib diisi dan > 0";
+    } else {
+      const total = Number(newDP.harga_jual) * Number(newDP.jumlah_barang);
+      if (Number(newDP.nominal_dp) < total * 0.5) {
+        newErrors.nominal_dp = `Minimal DP 50% (${formatRupiah(total * 0.5)})`;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // ================= SEARCH =================
   const handleSearch = () => {
@@ -90,42 +141,46 @@ function TransaksiDP() {
   });
 
   const handleAddSubmit = async () => {
-    if (!newDP.id_pelanggan || !newDP.nominal_dp || !newDP.id_produk || !newDP.tanggal_dp) {
-      alert("Lengkapi data DP");
+    setIsSubmitted(true);
+    if (!validateDP()) {
+      showDialog("Validasi Gagal", "Periksa kembali data DP", "warning");
       return;
     }
 
-    const totalHarga =
-      Number(newDP.harga_jual) * Number(newDP.jumlah_barang);
+    try {
+      await API.post("/dp", {
+        id_pelanggan: newDP.id_pelanggan,
+        id_produk: newDP.id_produk,
+        jumlah_barang: Number(newDP.jumlah_barang),
+        tanggal_dp: newDP.tanggal_dp,
+        nominal_dp: Number(newDP.nominal_dp),
+        keterangan: newDP.keterangan || "-",
+      });
 
-    const minDP = totalHarga * 0.5;
+      await fetchDP();
+      setOpenAddModal(false);
 
-    if (Number(newDP.nominal_dp) < minDP) {
-      alert(`Minimal DP adalah ${formatRupiah(minDP)}`);
-      return;
+      showDialog(
+        "Berhasil",
+        "Data down payment berhasil disimpan",
+        "success"
+      );
+
+      setNewDP({
+        id_pelanggan: "",
+        id_produk: "",
+        jumlah_barang: 1,
+        harga_jual: "",
+        tanggal_dp: "",
+        nominal_dp: "",
+        keterangan: "",
+        no_telp: "",
+      });
+
+      setErrors({});
+    } catch (err) {
+      showDialog("Gagal", "Terjadi kesalahan saat menyimpan DP", "error");
     }
-
-    await API.post("/dp", {
-      id_pelanggan: newDP.id_pelanggan,
-      id_produk: newDP.id_produk,
-      jumlah_barang: Number(newDP.jumlah_barang),
-      tanggal_dp: newDP.tanggal_dp,
-      nominal_dp: Number(newDP.nominal_dp),
-      keterangan: newDP.keterangan || "-"
-    });
-
-    await fetchDP();
-    setOpenAddModal(false);
-
-    setNewDP({
-      id_pelanggan: "",
-      id_produk: "",
-      jumlah_barang: "",
-      tanggal_dp: "",
-      nominal_dp: "",
-      keterangan: "",
-      no_telp: "",
-    });
   };
 
   // ================= LUNASI =================
@@ -134,8 +189,12 @@ function TransaksiDP() {
   const [nominalPelunasan, setNominalPelunasan] = useState("");
 
   const handlePelunasanSubmit = async () => {
-    if (!nominalPelunasan) {
-      alert("Nominal pelunasan wajib diisi");
+    if (!nominalPelunasan || Number(nominalPelunasan) <= 0) {
+      showDialog(
+        "Validasi Gagal",
+        "Nominal pelunasan wajib diisi dan lebih dari 0",
+        "warning"
+      );
       return;
     }
 
@@ -179,6 +238,12 @@ function TransaksiDP() {
 
     return dateString;
   }
+
+  // Pagination logic
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = rows.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
 
   return (
     <DashboardLayout>
@@ -227,7 +292,11 @@ function TransaksiDP() {
                     <Button
                       variant="contained"
                       color="success"
-                      onClick={() => setOpenAddModal(true)}
+                      onClick={() => {
+                        setOpenAddModal(true);
+                        setErrors({});
+                        setIsSubmitted(false);
+                      }}
                       sx={{
                         color: "inherit",
                         minWidth: "150px",
@@ -256,8 +325,8 @@ function TransaksiDP() {
                   >
                     <Table
                       columns={columns}
-                      rows={rows.map((r) => ({
-                        no: <SoftTypography variant="caption">{r.no}</SoftTypography>,
+                      rows={currentRows.map((r) => ({
+                        id: <SoftTypography variant="caption">{r.id}</SoftTypography>,
                         kode_transaksi: (
                           <SoftTypography variant="caption">{r.kode_transaksi}</SoftTypography>
                         ),
@@ -310,6 +379,37 @@ function TransaksiDP() {
                         ),
                       }))}
                     />
+                    <SoftBox
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                      p={2}
+                      gap={2}
+                    >
+                      <Button
+                        variant="outlined"
+                        disabled={page === 1 || rows.length === 0}
+                        onClick={() => setPage(page - 1)}
+                      >
+                        <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                          Previous
+                        </SoftTypography>
+                      </Button>
+
+                      <SoftTypography variant="caption">
+                        Page {page} of {totalPages}
+                      </SoftTypography>
+
+                      <Button
+                        variant="outlined"
+                        disabled={page === totalPages || rows.length === 0}
+                        onClick={() => setPage(page + 1)}
+                      >
+                        <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                          Next
+                        </SoftTypography>
+                      </Button>
+                    </SoftBox>
                   </SoftBox>
                 </Card>
               </SoftBox>
@@ -389,6 +489,11 @@ function TransaksiDP() {
                   color: "black",
                 }} />
             </div>
+            {isSubmitted && errors.id_pelanggan && (
+              <SoftTypography variant="caption" color="error">
+                {errors.id_pelanggan}
+              </SoftTypography>
+            )}
           </Box>
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption" fontWeight="medium">
@@ -398,6 +503,8 @@ function TransaksiDP() {
               fullWidth
               variant="outlined"
               value={newDP.no_telp}
+              error={isSubmitted && !!errors.no_telp}
+              helperText={isSubmitted ? errors.no_telp : ""}
               InputProps={{
                 readOnly: true,
               }}
@@ -472,6 +579,11 @@ function TransaksiDP() {
                   color: "black",
                 }} />
             </div>
+            {isSubmitted && errors.id_produk && (
+              <SoftTypography variant="caption" color="error">
+                {errors.id_produk}
+              </SoftTypography>
+            )}
           </Box>
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption" fontWeight="medium">
@@ -481,6 +593,8 @@ function TransaksiDP() {
               fullWidth
               variant="outlined"
               value={newDP.harga_jual}
+              error={isSubmitted && !!errors.harga_jual}
+              helperText={isSubmitted ? errors.harga_jual : ""}
               InputProps={{
                 readOnly: true,
               }}
@@ -507,6 +621,8 @@ function TransaksiDP() {
               fullWidth
               variant="outlined"
               value={newDP.jumlah_barang}
+              error={isSubmitted && !!errors.jumlah_barang}
+              helperText={isSubmitted ? errors.jumlah_barang : ""}
               onChange={(e) =>
                 setNewDP({
                   ...newDP,
@@ -595,6 +711,11 @@ function TransaksiDP() {
                 `}
               </style>
             </div>
+            {isSubmitted && errors.tanggal_dp && (
+              <SoftTypography variant="caption" color="error">
+                {errors.tanggal_dp}
+              </SoftTypography>
+            )}
           </Box>
           <Box display="flex" flexDirection="column" gap={1}>
             <SoftTypography variant="caption" fontWeight="medium">
@@ -604,6 +725,8 @@ function TransaksiDP() {
               fullWidth
               variant="outlined"
               value={newDP.nominal_dp}
+              error={isSubmitted && !!errors.nominal_dp}
+              helperText={isSubmitted ? errors.nominal_dp : ""}
               onChange={(e) => setNewDP({ ...newDP, nominal_dp: e.target.value })}
               sx={{
                 "& .MuiOutlinedInput-input": {
@@ -629,6 +752,8 @@ function TransaksiDP() {
               fullWidth
               variant="outlined"
               value={newDP.keterangan}
+              error={isSubmitted && !!errors.keterangan}
+              helperText={isSubmitted ? errors.keterangan : ""}
               onChange={(e) =>
                 setNewDP({ ...newDP, keterangan: e.target.value })
               }
@@ -649,7 +774,11 @@ function TransaksiDP() {
           </Box>
 
           <Box mt={3} textAlign="right">
-            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => setOpenAddModal(false)}>
+            <Button sx={{ color: "#FF0000 !important", mr: 2 }} onClick={() => {
+              setOpenAddModal(false);
+              setErrors({});
+              setIsSubmitted(false);
+            }}>
               Batal
             </Button>
             <Button
@@ -736,6 +865,8 @@ function TransaksiDP() {
                   variant="outlined"
                   placeholder="Masukkan nominal"
                   value={nominalPelunasan}
+                  error={!!errors.nominalPelunasan}
+                  helperText={errors.nominalPelunasan}
                   onChange={(e) => setNominalPelunasan(e.target.value)}
                 />
               </Box>
@@ -754,6 +885,13 @@ function TransaksiDP() {
           )}
         </Card>
       </Modal>
+      <CustomDialog
+        open={dialog.open}
+        onClose={() => setDialog({ ...dialog, open: false })}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+      />
     </DashboardLayout>
   );
 }

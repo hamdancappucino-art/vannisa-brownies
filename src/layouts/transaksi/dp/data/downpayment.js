@@ -2,7 +2,7 @@
 
 const tableDataDownPayment = {
   columns: [
-    { name: "no", label: "No", align: "center" },
+    { name: "id", label: "No", align: "center" },
     { name: "kode_transaksi", label: "Kode Transaksi", align: "center" },
     { name: "nama_pelanggan", label: "Nama Pelanggan", align: "center" },
     { name: "no_telp", label: "No Telp", align: "center" },

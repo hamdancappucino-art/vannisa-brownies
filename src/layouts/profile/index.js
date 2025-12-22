@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "api/api";
 
 // MUI
 import Grid from "@mui/material/Grid";
@@ -13,13 +13,15 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import Footer from "examples/Footer";
 import Header from "layouts/profile/components/Header";
 
-const API_URL = "http://localhost:5000/api/users";
-
 function Overview() {
   const [edit, setEdit] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [originalData, setOriginalData] = useState({});
+  const [errors, setErrors] = useState({});
+
+  const isValidEmail = (email) =>
+    /^\S+@\S+\.\S+$/.test(email);
 
   const [form, setForm] = useState({
     username: "",
@@ -38,15 +40,9 @@ function Overview() {
       return;
     }
 
-    axios
-      .get(`${API_URL}/${u.id}`, {
-        headers: {
-          Authorization: "Bearer " + localStorage.getItem("token"),
-        }
-      })
+    API.get(`/users/${u.id}`)
       .then((res) => {
         const user = res.data;
-
         const data = {
           username: user.username,
           password: user.password,
@@ -55,7 +51,6 @@ function Overview() {
           telp: user.no_telp,
           role: user.role,
         };
-
         setForm(data);
         setOriginalData(data);
       })
@@ -64,13 +59,48 @@ function Overview() {
       });
   }, []);
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.username.trim()) {
+      newErrors.username = "Username wajib diisi";
+    }
+
+    if (!form.nama.trim()) {
+      newErrors.nama = "Nama lengkap wajib diisi";
+    }
+
+    if (!form.email.trim()) {
+      newErrors.email = "Email wajib diisi";
+    } else if (!isValidEmail(form.email)) {
+      newErrors.email = "Format email tidak valid";
+    }
+
+    if (!form.telp.trim()) {
+      newErrors.telp = "Nomor telepon wajib diisi";
+    } else if (!/^[0-9]+$/.test(form.telp)) {
+      newErrors.telp = "Nomor telepon hanya boleh angka";
+    }
+
+    if (form.password && form.password.length < 6) {
+      newErrors.password = "Password minimal 6 karakter";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) return;
+
     setLoading(true);
 
     try {
-      await axios.put(`${API_URL}/1`, {
+      const u = JSON.parse(localStorage.getItem("user"));
+
+      await API.put(`/users/${u.id}`, {
         username: form.username,
-        password: form.password ? form.password : undefined,
+        ...(form.password && { password: form.password }),
         nama_lengkap: form.nama,
         email: form.email,
         no_telp: form.telp,
@@ -82,6 +112,7 @@ function Overview() {
 
       setOriginalData(form);
       setEdit(false);
+      setErrors({});
     } catch (err) {
       console.error("Error updating user:", err);
       alert("Gagal memperbarui data.");
@@ -92,10 +123,9 @@ function Overview() {
 
   const handleCancel = () => {
     setForm(originalData);
+    setErrors({});
     setEdit(false);
   };
-
-
 
   const handleChange = (key, val) => {
     setForm({ ...form, [key]: val });
@@ -138,6 +168,8 @@ function Overview() {
                         size="medium"
                         value={form.username}
                         disabled={!edit}
+                        error={!!errors.username}
+                        helperText={errors.username}
                         onChange={(e) => handleChange("username", e.target.value)}
                         sx={{ mb: 2 }}
                       />
@@ -154,8 +186,9 @@ function Overview() {
                           type={showPassword ? "text" : "password"}
                           value={form.password}
                           disabled={!edit}
+                          error={!!errors.password}
+                          helperText={errors.password || "Kosongkan jika tidak ingin mengganti password"}
                           onChange={(e) => handleChange("password", e.target.value)}
-                          // placeholder="Isi untuk mengganti password"
                           sx={{ "& .MuiInputBase-root": { paddingRight: "40px !important" } }}
                         />
 
@@ -166,6 +199,7 @@ function Overview() {
                             right: "10px",
                             zIndex: 2,
                             padding: 0,
+                            top: "12px"
                           }}
                         >
                           <Icon sx={{ fontSize: "18px !important" }}>
@@ -182,6 +216,8 @@ function Overview() {
                         size="medium"
                         value={form.nama}
                         disabled={!edit}
+                        error={!!errors.nama}
+                        helperText={errors.nama}
                         onChange={(e) => handleChange("nama", e.target.value)}
                         sx={{ mb: 2 }}
                       />
@@ -198,6 +234,8 @@ function Overview() {
                         size="medium"
                         value={form.email}
                         disabled={!edit}
+                        error={!!errors.email}
+                        helperText={errors.email}
                         onChange={(e) => handleChange("email", e.target.value)}
                         sx={{ mb: 2 }}
                       />
@@ -209,8 +247,10 @@ function Overview() {
                         size="medium"
                         value={form.telp}
                         disabled={!edit}
+                        error={!!errors.telp}
+                        helperText={errors.telp}
                         onChange={(e) => handleChange("telp", e.target.value)}
-                        sx={{ mb: 2 }}
+                        sx={{ mb: 4.2 }}
                       />
 
                       <SoftTypography variant="caption" fontWeight="bold" sx={{ mb: "4px" }}>

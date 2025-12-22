@@ -24,6 +24,8 @@ export default function LaporanPenjualan() {
   const [data, setData] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
 
   // FETCH DATA DARI API
   async function fetchData() {
@@ -36,6 +38,7 @@ export default function LaporanPenjualan() {
       const res = await API.get(url);
       console.log("HASIL LAPORAN:", res.data);
       setData(res.data.data || []);
+      setPage(1);
     } catch (e) {
       console.error(e);
       alert("Gagal mengambil data laporan");
@@ -96,8 +99,15 @@ export default function LaporanPenjualan() {
     (a, b) => a.id_laporan - b.id_laporan
   );
 
+  // PAGINATION
+  const indexOfLastRow = page * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = sortedData.slice(indexOfFirstRow, indexOfLastRow);
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
+
   // BUILD TABLE ROWS
-  const tableRows = sortedData.map((row) => ({
+  const tableRows = currentRows.map((row) => ({
     id_laporan: <SoftTypography variant="caption">{row.id_laporan}</SoftTypography>,
     tanggal_awal: <SoftTypography variant="caption">{formatDate(row.tanggal_awal)}</SoftTypography>,
     tanggal_akhir: <SoftTypography variant="caption">{formatDate(row.tanggal_akhir)}</SoftTypography>,
@@ -128,6 +138,18 @@ export default function LaporanPenjualan() {
                       size="medium"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-input": {
+                          maxWidth: "100% !important",
+                          width: "100% !important",
+                          minWidth: "100% !important",
+                          flex: "1 1 auto !important",
+                          display: "block !important",
+                          overflow: "visible !important",
+                          textOverflow: "clip !important",
+                          whiteSpace: "normal !important",
+                        }
+                      }}
                     />
                   </Grid>
 
@@ -139,6 +161,18 @@ export default function LaporanPenjualan() {
                       size="medium"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-input": {
+                          maxWidth: "100% !important",
+                          width: "100% !important",
+                          minWidth: "100% !important",
+                          flex: "1 1 auto !important",
+                          display: "block !important",
+                          overflow: "visible !important",
+                          textOverflow: "clip !important",
+                          whiteSpace: "normal !important",
+                        }
+                      }}
                     />
                   </Grid>
 
@@ -161,10 +195,10 @@ export default function LaporanPenjualan() {
                       <SoftTypography fontSize="13px" color="black">Generate</SoftTypography>
                     </Button>
 
-                    <Button variant="contained" color="error" onClick={exportPDF}>
+                    {/* <Button variant="contained" color="error" onClick={exportPDF}>
                       <PictureAsPdfIcon sx={{ mr: 1 }} />
                       <SoftTypography fontSize="13px" color="black">Export PDF</SoftTypography>
-                    </Button>
+                    </Button> */}
                   </Grid>
                 </Grid>
               </SoftBox>
@@ -172,6 +206,37 @@ export default function LaporanPenjualan() {
               {/* TABLE */}
               <SoftBox sx={{ "& .MuiTableRow-root td": { borderBottom: "1px solid #eee" } }}>
                 <Table columns={columns} rows={tableRows} />
+                <SoftBox
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  p={2}
+                  gap={2}
+                >
+                  <Button
+                    variant="outlined"
+                    disabled={page === 1 || sortedData.length === 0}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Previous
+                    </SoftTypography>
+                  </Button>
+
+                  <SoftTypography variant="caption">
+                    Page {page} of {totalPages}
+                  </SoftTypography>
+
+                  <Button
+                    variant="outlined"
+                    disabled={page === totalPages || sortedData.length === 0}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <SoftTypography fontSize="13px" fontWeight="medium" color="black">
+                      Next
+                    </SoftTypography>
+                  </Button>
+                </SoftBox>
               </SoftBox>
             </Card>
           </Grid>

@@ -18,6 +18,7 @@ import SoftBox from "components/SoftBox";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CustomDialog from "components/CustomDialog";
 
 import Table from "examples/Tables/Table";
 import Footer from "examples/Footer";
@@ -37,6 +38,22 @@ export default function MasterCOA() {
   const [data, setData] = useState([]);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "success",
+  });
+
+  function showDialog(title, subtitle, type = "error") {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+    });
+  }
 
   const [form, setForm] = useState({
     kode_akun: "",
@@ -83,12 +100,45 @@ export default function MasterCOA() {
     setOpen(true);
   }
 
+  function validateForm() {
+    if (!form.kode_akun.trim()) {
+      showDialog(
+        "Validasi Gagal",
+        "Kode akun wajib diisi.",
+        "error"
+      );
+      return false;
+    }
+
+    if (!form.nama_akun.trim()) {
+      showDialog(
+        "Validasi Gagal",
+        "Nama akun wajib diisi.",
+        "error"
+      );
+      return false;
+    }
+
+    if (!form.tipe_balance) {
+      showDialog(
+        "Validasi Gagal",
+        "Tipe balance wajib dipilih.",
+        "error"
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   // SAVE DATA
   async function save() {
+    if (!validateForm()) return;
+
     const payload = {
-      kode_akun: form.kode_akun,
-      nama_akun: form.nama_akun,
-      header_akun: form.header_akun || null,
+      kode_akun: form.kode_akun.trim(),
+      nama_akun: form.nama_akun.trim(),
+      header_akun: form.header_akun?.trim() || null,
       tipe_balance: form.tipe_balance,
       is_active: form.is_active ? 1 : 0,
     };
@@ -96,14 +146,31 @@ export default function MasterCOA() {
     try {
       if (editingIndex === null) {
         await API.post("/coa", payload);
+        showDialog(
+          "Berhasil",
+          "Data COA berhasil ditambahkan.",
+          "success"
+        );
       } else {
         const kode = data[editingIndex].kode_akun;
         await API.put(`/coa/${kode}`, payload);
+        showDialog(
+          "Berhasil",
+          "Data COA berhasil diperbarui.",
+          "success"
+        );
       }
+
       fetchCOA();
       setOpen(false);
     } catch (err) {
       console.error("Save error:", err);
+
+      showDialog(
+        "Gagal Menyimpan",
+        err.response?.data?.message || "Terjadi kesalahan pada server.",
+        "error"
+      );
     }
   }
 
@@ -325,6 +392,13 @@ export default function MasterCOA() {
       </Modal>
 
       <Footer />
+      <CustomDialog
+        open={dialog.open}
+        onClose={() => setDialog({ ...dialog, open: false })}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+      />
     </DashboardLayout>
   );
 }

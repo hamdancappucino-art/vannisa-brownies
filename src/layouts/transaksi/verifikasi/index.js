@@ -18,6 +18,7 @@ import SoftTypography from "components/SoftTypography";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
+import CustomDialog from "components/CustomDialog";
 
 import Table from "examples/Tables/Table";
 
@@ -36,6 +37,22 @@ function VerifikasiPenjualan() {
   // Pagination
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    subtitle: "",
+    type: "success",
+  });
+
+  function showDialog(title, subtitle, type = "error") {
+    setDialog({
+      open: true,
+      title,
+      subtitle,
+      type,
+    });
+  }
 
   useEffect(() => {
     loadData();
@@ -80,8 +97,20 @@ function VerifikasiPenjualan() {
       });
 
       loadData();
+
+      showDialog(
+        "Berhasil",
+        yes
+          ? `Transaksi INV-${row.id_penjualan} berhasil diverifikasi`
+          : `Verifikasi transaksi INV-${row.id_penjualan} dibatalkan`,
+        "success"
+      );
     } catch (err) {
-      console.log(err);
+      showDialog(
+        "Gagal",
+        err.response?.data?.message || "Gagal memperbarui status penjualan",
+        "error"
+      );
     }
   };
 
@@ -261,8 +290,14 @@ function VerifikasiPenjualan() {
           </SoftBox>
         </Box>
       </Modal>
-
       <Footer />
+      <CustomDialog
+        open={dialog.open}
+        title={dialog.title}
+        subtitle={dialog.subtitle}
+        type={dialog.type}
+        onClose={() => setDialog({ ...dialog, open: false })}
+      />
     </DashboardLayout>
   );
 }
