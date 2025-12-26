@@ -35,6 +35,8 @@ import Profilee from "examples/Icons/Profile";
 import Master from "examples/Icons/Master";
 import CustomerSupport from "examples/Icons/CustomerSupport";
 import LogoutIcon from "examples/Icons/Logout";
+import JurnalUmum from "layouts/jurnal/umum";
+// import { type } from "@testing-library/user-event/dist/types/utility";
 
 const getRole = () => {
   try {
@@ -61,10 +63,10 @@ const accessControl = {
     "master-coa",
     "master-produk",
     "master-pelanggan",
-    "jurnal",
-    "jurnal-penjualan",
-    "jurnal-beban",
-    "jurnal-dp",
+    "jurnal-umum",
+    // "jurnal-penjualan",
+    // "jurnal-beban",
+    // "jurnal-dp",
     "laporan",
     "laporan-penjualan",
     "laporan-laba-rugi",
@@ -187,36 +189,46 @@ const rawRoutes = [
   // JURNAL
   {
     type: "collapse",
-    name: "Jurnal",
-    key: "jurnal",
+    name: "Jurnal Umum",
+    key: "jurnal-umum",
+    route: "/jurnal-umum",
     icon: <Document size="12px" />,
-    collapse: [
-      {
-        name: "Jurnal Penjualan",
-        key: "jurnal-penjualan",
-        route: "/jurnal/penjualan",
-        icon: <Document size="12px" />,
-        component: <JurnalPenjualan />,
-        protected: true,
-      },
-      {
-        name: "Jurnal Beban",
-        key: "jurnal-beban",
-        route: "/jurnal/beban",
-        icon: <Document size="12px" />,
-        component: <JurnalBeban />,
-        protected: true,
-      },
-      {
-        name: "Jurnal DP",
-        key: "jurnal-dp",
-        route: "/jurnal/dp",
-        icon: <Document size="12px" />,
-        component: <JurnalDP />,
-        protected: true,
-      },
-    ],
+    component: <JurnalUmum />,
+    protected: true,
+    noCollapse: true,
   },
+  // {
+  //   type: "collapse",
+  //   name: "Jurnal",
+  //   key: "jurnal",
+  //   icon: <Document size="12px" />,
+  //   collapse: [
+  //     {
+  //       name: "Jurnal Penjualan",
+  //       key: "jurnal-penjualan",
+  //       route: "/jurnal/penjualan",
+  //       icon: <Document size="12px" />,
+  //       component: <JurnalPenjualan />,
+  //       protected: true,
+  //     },
+  //     {
+  //       name: "Jurnal Beban",
+  //       key: "jurnal-beban",
+  //       route: "/jurnal/beban",
+  //       icon: <Document size="12px" />,
+  //       component: <JurnalBeban />,
+  //       protected: true,
+  //     },
+  //     {
+  //       name: "Jurnal DP",
+  //       key: "jurnal-dp",
+  //       route: "/jurnal/dp",
+  //       icon: <Document size="12px" />,
+  //       component: <JurnalDP />,
+  //       protected: true,
+  //     },
+  //   ],
+  // },
 
   // LAPORAN
   {

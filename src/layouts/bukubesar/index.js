@@ -47,9 +47,12 @@ function BukuBesar() {
   }, []);
 
   const filteredRows = rows.filter((r) => {
-    const matchKode = !filter.kode_akun || r.kode_akun.toString().includes(filter.kode_akun);
+    const matchKode =
+      !filter.kode_akun || r.id_coa.toString().includes(filter.kode_akun);
+
     const matchFrom = !filter.from || r.tanggal >= filter.from;
     const matchTo = !filter.to || r.tanggal <= filter.to;
+
     return matchKode && matchFrom && matchTo;
   });
 
