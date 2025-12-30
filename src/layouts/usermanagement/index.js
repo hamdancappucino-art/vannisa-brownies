@@ -19,7 +19,7 @@ import Footer from "examples/Footer";
 import CustomDialog from "components/CustomDialog";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import Table from "examples/Tables/Table";
+import Table from "examples/Tables/CustomTable";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 const columns = [

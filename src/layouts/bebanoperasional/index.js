@@ -26,7 +26,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import Footer from "examples/Footer";
 import CustomDialog from "components/CustomDialog";
 
-import Table from "examples/Tables/Table";
+import Table from "examples/Tables/CustomTable";
 
 import bebanTableData from "./data/beban";
 

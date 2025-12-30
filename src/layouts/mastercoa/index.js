@@ -20,7 +20,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CustomDialog from "components/CustomDialog";
 
-import Table from "examples/Tables/Table";
+import Table from "examples/Tables/CustomTable";
 import Footer from "examples/Footer";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 

@@ -2,15 +2,13 @@
 
 const laporanLabaRugiTable = {
   columns: [
-    { name: "id_laporan", align: "center", label: "ID Laporan" },
-    { name: "tanggal_awal", align: "center", label: "Tanggal Awal" },
-    { name: "tanggal_akhir", align: "center", label: "Tanggal Akhir" },
-    { name: "total_pendapatan", align: "center", label: "Total Pendapatan" },
-    { name: "total_beban", align: "center", label: "Total Beban" },
-    { name: "laba_kotor", align: "center", label: "Laba Kotor" },
-    { name: "laba_bersih", align: "center", label: "Laba Bersih" },
-    { name: "periode", align: "center", label: "Periode" },
-    { name: "created_at", align: "center", label: "Tanggal Dibuat" },
+    { name: "tanggal_awal", align: "left", label: "Tanggal Awal" },
+    { name: "tanggal_akhir", align: "left", label: "Tanggal Akhir" },
+    { name: "total_pendapatan", align: "left", label: "Total Pendapatan" },
+    { name: "total_beban", align: "left", label: "Total Beban" },
+    { name: "laba_kotor", align: "left", label: "Laba Kotor" },
+    { name: "laba_bersih", align: "left", label: "Laba Bersih" },
+    { name: "periode", align: "left", label: "Periode" },
   ],
 
   rows: [

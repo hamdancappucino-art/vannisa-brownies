@@ -16,7 +16,7 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import Table from "examples/Tables/Table";
+import Table from "examples/Tables/CustomTable";
 import tableDataDownPayment from "./data/downpayment";
 import CustomDialog from "components/CustomDialog";
 
@@ -326,7 +326,7 @@ function TransaksiDP() {
                     <Table
                       columns={columns}
                       rows={currentRows.map((r) => ({
-                        id: <SoftTypography variant="caption">{r.id}</SoftTypography>,
+                        id: (<SoftTypography variant="caption">{r.id}</SoftTypography>),
                         kode_transaksi: (
                           <SoftTypography variant="caption">{r.kode_transaksi}</SoftTypography>
                         ),
@@ -356,9 +356,6 @@ function TransaksiDP() {
                         status: (
                           <SoftTypography variant="caption">{r.status}</SoftTypography>
                         ),
-                        // id_user: (
-                        //   <SoftTypography variant="caption">{r.id_user}</SoftTypography>
-                        // ),
                         aksi: r.status === "Belum Lunas" ? (
                           <Button
                             variant="outlined"

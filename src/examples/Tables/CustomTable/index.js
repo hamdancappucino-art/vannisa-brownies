@@ -48,11 +48,11 @@ function Table({ columns, rows }) {
       let pr;
 
       if (key === 0) {
-        pl = 1;
-        pr = 1;
+        pl = 3;
+        pr = 3;
       } else if (key === columns.length - 1) {
-        pl = 1;
-        pr = 1;
+        pl = 3;
+        pr = 3;
       } else {
         pl = 1;
         pr = 1;
@@ -65,8 +65,8 @@ function Table({ columns, rows }) {
           width={width || "auto"}
           pt={1.5}
           pb={1.25}
-          pl={align === "left" ? 4 : 2}
-          pr={align === "right" ? 4 : 2}
+          pl={align === "left" ? pl : 3}
+          pr={align === "right" ? pr : 3}
           textAlign={align}
           fontSize={size.xxs}
           fontWeight={fontWeightBold}
@@ -92,10 +92,10 @@ function Table({ columns, rows }) {
             <SoftBox
               key={uuidv4()}
               component="td"
-              p={2}
+              p={1}
               borderBottom={row.hasBorder ? `${borderWidth[1]} solid ${light.main}` : null}
             >
-              <SoftBox display="flex" alignItems={column.align || "left"} py={0.5} px={2}>
+              <SoftBox display="flex" alignItems="center" py={0.5} px={1}>
                 <SoftBox mr={2}>
                   <SoftAvatar src={row[name][0]} name={row[name][1]} variant="rounded" size="sm" />
                 </SoftBox>
@@ -111,7 +111,6 @@ function Table({ columns, rows }) {
               key={uuidv4()}
               component="td"
               p={1}
-              pl={4}
               textAlign={align}
               borderBottom={row.hasBorder ? `${borderWidth[1]} solid ${light.main}` : null}
             >

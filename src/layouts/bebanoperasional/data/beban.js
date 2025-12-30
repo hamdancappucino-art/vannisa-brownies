@@ -1,6 +1,5 @@
 const bebanTableData = {
   columns: [
-    { name: "id", label: "No", align: "center" },
     { name: "jenis_beban", label: "Jenis Beban", align: "center" },
     { name: "kode_akun", label: "Kode Akun", align: "center" },
     { name: "nominal", label: "Nominal", align: "center" },

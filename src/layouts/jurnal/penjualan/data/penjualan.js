@@ -1,13 +1,10 @@
 const laporanPenjualanTableData = {
   columns: [
-    { name: "id_jurnal_penjualan", align: "center", label: "ID Jurnal" },
-    { name: "id_penjualan", align: "center", label: "ID Penjualan" },
-    { name: "tanggal", align: "center", label: "Tanggal" },
-    { name: "kode", align: "center", label: "Kode" },
-    { name: "nominal", align: "center", label: "Nominal" },
-    { name: "tipe_balance", align: "center", label: "Tipe Balance" },
-    { name: "keterangan", align: "center", label: "Keterangan" },
-    { name: "created_at", align: "center", label: "Tanggal Dibuat" },
+    { name: "tanggal", align: "left", label: "Tanggal" },
+    { name: "kode", align: "left", label: "Kode" },
+    { name: "nominal", align: "left", label: "Nominal" },
+    { name: "tipe_balance", align: "left", label: "Tipe Balance" },
+    { name: "keterangan", align: "left", label: "Keterangan" },
   ],
 
   rows: [

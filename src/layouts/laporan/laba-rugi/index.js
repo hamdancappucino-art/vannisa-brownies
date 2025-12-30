@@ -19,15 +19,23 @@ import Footer from "examples/Footer";
 import Table from "examples/Tables/Table";
 
 import laporanLabaRugiTable from "./data/labarugi";
+import transaksiTable from "./data/transaksi";
+import bebanTable from "./data/beban";
 
 export default function LaporanLabaRugi() {
   const { columns } = laporanLabaRugiTable;
+  const { columns: bebanColumns } = bebanTable;
+  const { columns: transaksiColumns } = transaksiTable;
   const [data, setData] = useState([]);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+  const [openDetail, setOpenDetail] = useState(false);
+  const [selectedLaporan, setSelectedLaporan] = useState(null);
+  const [detailTransaksi, setDetailTransaksi] = useState([]);
+  const [detailBeban, setDetailBeban] = useState([]);
 
   // FORM
   const [form, setForm] = useState({
@@ -93,6 +101,28 @@ export default function LaporanLabaRugi() {
     return dateString;
   }
 
+  async function fetchDetailLaporan(laporan) {
+    try {
+      setSelectedLaporan(laporan);
+      setDetailTransaksi([]);
+      setDetailBeban([]);
+
+      const res = await API.get(
+        `/laporan-laba-rugi/${laporan.id_laporan}/detail`
+      );
+
+      console.log("DETAIL API:", res.data); // ⬅️ TAMBAH INI
+
+      setDetailTransaksi(res.data.transaksi || []);
+      setDetailBeban(res.data.beban || []);
+
+      setOpenDetail(true);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengambil detail laporan");
+    }
+  }
+
   // PAGINATION
   const indexOfLastRow = page * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
@@ -102,49 +132,115 @@ export default function LaporanLabaRugi() {
 
   // Build Table Rows
   const tableRows = currentRows.map((row) => ({
-    id_laporan: <SoftTypography variant="caption">{row.id_laporan}</SoftTypography>,
+    id_laporan: (
+      <SoftBox
+        sx={{ cursor: "pointer" }}
+        onClick={() => fetchDetailLaporan(row)}
+      >
+        <SoftTypography variant="caption">{row.id_laporan}</SoftTypography>
+      </SoftBox>
+    ),
 
     tanggal_awal: (
-      <SoftTypography variant="caption">
-        {formatDate(row.tanggal_awal)}
-      </SoftTypography>
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">
+          {formatDate(row.tanggal_awal)}
+        </SoftTypography>
+      </SoftBox>
     ),
 
     tanggal_akhir: (
-      <SoftTypography variant="caption">
-        {formatDate(row.tanggal_akhir)}
-      </SoftTypography>
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">
+          {formatDate(row.tanggal_akhir)}
+        </SoftTypography>
+      </SoftBox>
     ),
 
     total_pendapatan: (
-      <SoftTypography variant="caption">
-        Rp{Number(row.total_pendapatan).toLocaleString("id-ID")}
-      </SoftTypography>
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">
+          Rp{Number(row.total_pendapatan).toLocaleString("id-ID")}
+        </SoftTypography>
+      </SoftBox>
     ),
 
     total_beban: (
-      <SoftTypography variant="caption">
-        Rp{Number(row.total_beban).toLocaleString("id-ID")}
-      </SoftTypography>
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">
+          Rp{Number(row.total_beban).toLocaleString("id-ID")}
+        </SoftTypography>
+      </SoftBox>
     ),
 
     laba_kotor: (
-      <SoftTypography variant="caption">
-        Rp{Number(row.laba_kotor).toLocaleString("id-ID")}
-      </SoftTypography>
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">
+          Rp{Number(row.laba_kotor).toLocaleString("id-ID")}
+        </SoftTypography>
+      </SoftBox>
     ),
 
     laba_bersih: (
-      <SoftTypography
-        variant="caption"
-        color={Number(row.laba_bersih) >= 0 ? "success" : "error"}
-      >
-        Rp{Math.abs(Number(row.laba_bersih)).toLocaleString("id-ID")}
-      </SoftTypography>
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography
+          variant="caption"
+          color={Number(row.laba_bersih) >= 0 ? "success" : "error"}
+        >
+          Rp{Math.abs(Number(row.laba_bersih)).toLocaleString("id-ID")}
+        </SoftTypography>
+      </SoftBox>
     ),
 
-    periode: <SoftTypography variant="caption">{row.periode}</SoftTypography>,
-    created_at: <SoftTypography variant="caption">{formatDate(row.created_at)}</SoftTypography>,
+    periode: (
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">{row.periode}</SoftTypography>
+      </SoftBox>
+    ),
+
+    created_at: (
+      <SoftBox sx={{ cursor: "pointer" }} onClick={() => fetchDetailLaporan(row)}>
+        <SoftTypography variant="caption">
+          {formatDate(row.created_at)}
+        </SoftTypography>
+      </SoftBox>
+    ),
+  }));
+
+  const tableRow = detailTransaksi.map((row) => ({
+    tanggal: (
+      <SoftTypography variant="caption">
+        {formatDate(row.tanggal)}
+      </SoftTypography>
+    ),
+    keterangan: (
+      <SoftTypography variant="caption">
+        {row.keterangan}
+      </SoftTypography>
+    ),
+    jumlah: (
+      <SoftTypography variant="caption">
+        Rp{Number(row.jumlah).toLocaleString("id-ID")}
+      </SoftTypography>
+    ),
+  }));
+
+  const tableRoww = detailBeban.map((row) => ({
+    tanggal: (
+      <SoftTypography variant="caption">
+        {formatDate(row.tanggal)}
+      </SoftTypography>
+    ),
+    keterangan: (
+      <SoftTypography variant="caption">
+        {row.keterangan}
+      </SoftTypography>
+    ),
+    jumlah: (
+      <SoftTypography variant="caption">
+        Rp{Number(row.jumlah).toLocaleString("id-ID")}
+      </SoftTypography>
+    ),
   }));
 
   // Summary Perhitungan
@@ -332,6 +428,76 @@ export default function LaporanLabaRugi() {
         </Grid>
       </SoftBox>
       <Footer />
+      <Modal open={openDetail} onClose={() => {
+        setOpenDetail(false);
+        setDetailTransaksi([]);
+        setDetailBeban([]);
+      }}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "90%",
+            maxWidth: 900,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 3,
+            maxHeight: "90vh",
+            overflowY: "auto",
+          }}
+        >
+          <SoftTypography variant="h6" mb={2}>
+            Detail Laba Rugi
+          </SoftTypography>
+
+          {selectedLaporan && (
+            <SoftTypography variant="caption" mb={2} display="block">
+              Periode: {selectedLaporan.periode}
+            </SoftTypography>
+          )}
+
+          {/* ================= TRANSAKSI ================= */}
+          <SoftTypography variant="h6" mt={2} mb={1}>
+            Transaksi
+          </SoftTypography>
+
+          <Table
+            columns={transaksiColumns}
+            rows={tableRow}
+          />
+
+          {detailTransaksi.length === 0 && (
+            <SoftTypography variant="caption" color="text">
+              Tidak ada data transaksi
+            </SoftTypography>
+          )}
+
+          {/* ================= BEBAN ================= */}
+          <SoftTypography variant="h6" mt={4} mb={1}>
+            Beban
+          </SoftTypography>
+
+          <Table
+            columns={bebanColumns}
+            rows={tableRoww}
+          />
+
+          {detailBeban.length === 0 && (
+            <SoftTypography variant="caption" color="text">
+              Tidak ada data beban
+            </SoftTypography>
+          )}
+
+          <SoftBox mt={3} display="flex" justifyContent="flex-end">
+            <Button variant="contained" onClick={() => setOpenDetail(false)} sx={{ color: "white.main" }}>
+              Tutup
+            </Button>
+          </SoftBox>
+        </Box>
+      </Modal>
     </DashboardLayout>
   );
 }
