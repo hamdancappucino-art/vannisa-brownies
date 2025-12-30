@@ -125,6 +125,8 @@ function TransaksiInput() {
     });
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -285,6 +287,8 @@ function TransaksiInput() {
                       <input
                         type="date"
                         value={form.tanggal_jual}
+                        min={today}
+                        max={today}
                         onChange={(e) =>
                           setForm({ ...form, tanggal_jual: e.target.value })
                         }

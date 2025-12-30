@@ -59,6 +59,7 @@ export default function JurnalUmum() {
     id_transaksi: "",
     tanggal: "",
     kode_akun: "",
+    nama_akun: "",
     nominal: "",
     tipe_balance: "",
     keterangan: "",
@@ -240,6 +241,15 @@ export default function JurnalUmum() {
     return dateString;
   }
 
+  const formatRupiahOrDash = (value) => {
+    const num = Number(value);
+    if (!num || num === 0) return "-";
+    return `Rp ${num.toLocaleString("id-ID")}`;
+  };
+
+  const capitalizeFirst = (text = "") =>
+    text.charAt(0).toUpperCase() + text.slice(1);
+
   const tableRows = currentRows.map((row, index) => ({
     id_jurnal: row.id_jurnal,
     id_transaksi: (
@@ -258,14 +268,19 @@ export default function JurnalUmum() {
         {row.kode_akun}
       </SoftTypography>
     ),
-    nominal: (
+    nama_akun: (
       <SoftTypography variant="caption" color="text">
-        Rp{Number(row.nominal).toLocaleString("id-ID")}
+        {row.nama_akun}
       </SoftTypography>
     ),
-    tipe_balance: (
+    debit: (
       <SoftTypography variant="caption" color="text">
-        {row.tipe_balance}
+        {formatRupiahOrDash(row.debit)}
+      </SoftTypography>
+    ),
+    kredit: (
+      <SoftTypography variant="caption" color="text">
+        {formatRupiahOrDash(row.kredit)}
       </SoftTypography>
     ),
     keterangan: (
@@ -273,22 +288,17 @@ export default function JurnalUmum() {
         {row.keterangan}
       </SoftTypography>
     ),
-    created_at: (
-      <SoftTypography variant="caption" color="text">
-        {formatDate(row.created_at)}
-      </SoftTypography>
-    ),
 
-    action: (
-      <SoftBox display="flex" justifyContent="center" gap={1}>
-        <IconButton color="info" size="small" onClick={() => openEdit(row)}>
-          <EditIcon />
-        </IconButton>
-        <IconButton color="error" size="small" sx={{ color: "red !important" }} onClick={() => remove(row.id_jurnal)}>
-          <DeleteIcon />
-        </IconButton>
-      </SoftBox>
-    ),
+    // action: (
+    //   <SoftBox display="flex" justifyContent="center" gap={1}>
+    //     <IconButton color="info" size="small" onClick={() => openEdit(row)}>
+    //       <EditIcon />
+    //     </IconButton>
+    //     <IconButton color="error" size="small" sx={{ color: "red !important" }} onClick={() => remove(row.id_jurnal)}>
+    //       <DeleteIcon />
+    //     </IconButton>
+    //   </SoftBox>
+    // ),
   }));
 
   return (
@@ -368,7 +378,8 @@ export default function JurnalUmum() {
                 }}
               >
                 <Table
-                  columns={[...columns, { name: "action", align: "center", label: "Aksi" }]}
+                  columns={[...columns]}
+                  // { name: "action", align: "center", label: "Aksi" }
                   rows={tableRows}
                 />
                 <SoftBox
@@ -427,7 +438,7 @@ export default function JurnalUmum() {
           <SoftTypography variant="h6" mb={2}>
             Edit Data Jurnal Umum
           </SoftTypography>
-          <Box display="flex" flexDirection="column" gap={1}>
+          <Box display="flex" flexDirection="column" gap={1} mb={2} >
             <SoftTypography variant="caption" fontWeight="medium">
               Kode Akun
             </SoftTypography>
@@ -477,14 +488,46 @@ export default function JurnalUmum() {
               </SoftTypography>
             )}
           </Box>
+          <Box display="flex" flexDirection="column" gap={1}>
+            <SoftTypography variant="caption" fontWeight="medium">
+              Nama Akun
+            </SoftTypography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={form.nama_akun}
+              InputProps={{
+                readOnly: true,
+              }}
+              sx={{
+                "& .MuiOutlinedInput-input": {
+                  maxWidth: "100% !important",
+                  width: "100% !important",
+                  minWidth: "100% !important",
+                  flex: "1 1 auto !important",
+                  display: "block !important",
+                  overflow: "visible !important",
+                  textOverflow: "clip !important",
+                  whiteSpace: "normal !important",
+                  color: "black !important"
+                }
+              }}
+            />
+            {isSubmitted && errors.nama_akun && (
+              <SoftTypography variant="caption" color="error">
+                {errors.nama_akun}
+              </SoftTypography>
+            )}
+          </Box>
           {[
             "tanggal",
-            "nominal",
             "keterangan",
+            "debit",
+            "kredit",
           ].map((field) => (
-            <Box key={field} mb={2}>
-              <SoftTypography variant="caption">
-                {field.toUpperCase()}
+            <Box key={field} mb={0}>
+              <SoftTypography variant="caption" fontWeight="medium">
+                {capitalizeFirst(field)}
               </SoftTypography>
 
               <TextField
@@ -497,7 +540,7 @@ export default function JurnalUmum() {
               />
             </Box>
           ))}
-          <Box mb={2}>
+          {/* <Box mb={2}>
             <SoftTypography variant="caption" fontWeight="medium">
               Tipe Balance
             </SoftTypography>
@@ -551,7 +594,7 @@ export default function JurnalUmum() {
                 }}
               />
             </div>
-          </Box>
+          </Box> */}
 
           <Box mt={3} textAlign="right">
             <Button onClick={() => setOpen(false)} sx={{ color: "red", mr: 2 }}>
